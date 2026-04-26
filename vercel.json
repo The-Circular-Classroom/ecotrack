@@ -3,18 +3,9 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": "apps/frontend/.next",
-  "env": [
-    "DATABASE_URL",
-    "COGNITO_USER_POOL_ID",
-    "COGNITO_CLIENT_ID",
-    "AWS_ACCESS_KEY_ID",
-    "AWS_SECRET_ACCESS_KEY",
-    "AWS_REGION",
-    "S3_BUCKET_NAME",
-    "SES_SENDER_EMAIL",
-    "SNS_TOPIC_ARN",
-    "NEXT_PUBLIC_API_URL"
-  ],
+  "nodeVersion": "20.x",
+  "regions": ["sfo1", "sin1"],
+
   "functions": {
     "apps/backend/**": {
       "memory": 1024,
