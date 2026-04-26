@@ -10,9 +10,7 @@
   ],
   "scripts": {
     "dev": "npm --workspace=apps/backend run dev & npm --workspace=apps/frontend run dev",
-    "build": "npm --workspace=apps/frontend run build && npm --workspace=apps/backend run build",
-    "build:frontend": "npm --workspace=apps/frontend run build",
-    "build:backend": "npm --workspace=apps/backend run build",
+    "build": "npm --workspace=apps/frontend run build",
     "start": "npm --workspace=apps/frontend run start",
     "start:backend": "npm --workspace=apps/backend run start",
     "lint": "npm --workspace=apps/frontend run lint && npm --workspace=apps/backend run test",
