@@ -3,8 +3,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": "apps/frontend/.next",
-  "nodeVersion": "20.x",
-  "regions": ["sfo1", "sin1"],
   "env": [
     "DATABASE_URL",
     "COGNITO_USER_POOL_ID",
