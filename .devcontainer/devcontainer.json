@@ -1,0 +1,13 @@
+{
+	"name": "Node.js",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:4-24-trixie",
+	"customizations": {
+		"codespaces": {
+			"repositories": {
+				"The-Circular-Classroom/*": {
+					"permissions": "read-all"
+				}
+			}
+		}
+	}
+}
