@@ -1,0 +1,48 @@
+{
+  "name": "ecotrack-backend",
+  "version": "1.0.0",
+  "description": "Unified backend for inventory management and analytics",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest --forceExit --detectOpenHandles",
+    "test:coverage": "jest --forceExit --detectOpenHandles --coverage",
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test:item-types": "node scripts/test-item-types.js",
+    "swagger": "node ./swagger.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "author": "The Circular Classroom",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1009.0",
+    "@aws-sdk/client-s3": "^3.1022.0",
+    "@aws-sdk/client-sesv2": "^3.1022.0",
+    "@aws-sdk/client-sns": "^3.1000.0",
+    "@prisma/adapter-pg": "^7.5.0",
+    "aws-jwt-verify": "^5.1.1",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.4.0",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "javascript-lp-solver": "^1.0.3",
+    "multer": "^2.1.0",
+    "pdfkit": "^0.18.0",
+    "pg": "^8.20.0",
+    "prisma": "^7.5.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.1.0",
+    "swagger-autogen": "^2.23.7"
+  }
+}

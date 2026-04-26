@@ -1,0 +1,32 @@
+{
+  "name": "ecotrack",
+  "version": "1.0.0",
+  "description": "The Circular Classroom - Unified Inventory & Analytics Platform",
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend",
+    "packages/database"
+  ],
+  "scripts": {
+    "dev": "npm --workspace=apps/backend run dev & npm --workspace=apps/frontend run dev",
+    "build": "npm --workspace=apps/frontend run build && npm --workspace=apps/backend run build",
+    "build:frontend": "npm --workspace=apps/frontend run build",
+    "build:backend": "npm --workspace=apps/backend run build",
+    "start": "npm --workspace=apps/frontend run start",
+    "start:backend": "npm --workspace=apps/backend run start",
+    "lint": "npm --workspace=apps/frontend run lint && npm --workspace=apps/backend run test",
+    "test": "npm --workspace=apps/backend run test",
+    "test:coverage": "npm --workspace=apps/backend run test:coverage",
+    "prisma:generate": "npm --workspace=packages/database run generate",
+    "prisma:migrate": "npm --workspace=packages/database run migrate",
+    "prisma:db:push": "npm --workspace=packages/database run db:push"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
