@@ -1,0 +1,12 @@
+import { getRequestContext } from '@/lib/request-context';
+import { getSchoolProductsCreated } from '@/lib/data/school';
+
+export async function GET(request, { params }) {
+  const context = await getRequestContext(request);
+  if (!context.isAuthenticated) {
+    return Response.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const data = await getSchoolProductsCreated(params.schoolId);
+  return Response.json({ success: true, data });
+}
