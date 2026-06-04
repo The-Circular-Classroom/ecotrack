@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "npm run prisma:generate && npm run build",
+  "functions": {
+    "src/app/api/csv/process-donation-csv/route.js": {
+      "maxDuration": 60
+    },
+    "src/app/api/csv/process-donation-csv/approved/route.js": {
+      "maxDuration": 60
+    },
+    "src/app/api/donation-drive/[...slug]/route.js": {
+      "maxDuration": 60
+    }
+  }
+}

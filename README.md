@@ -109,8 +109,19 @@ CSV uploads are validated against the database, stored as artifacts in Supabase 
 ## Deployment Notes
 
 - The app is intended to be deployed as a single Vercel project.
-- Prisma validation and client generation should succeed before deployment.
-- Make sure the Supabase environment variables and storage bucket name are configured in Vercel.
+- Vercel should run `npm run prisma:generate && npm run build` so the Prisma client is available during production builds.
+- Set these environment variables in the Vercel project settings for Production, Preview, and Development:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+DATABASE_URL=postgresql://user:password@host:5432/database
+SUPABASE_STORAGE_BUCKET_NAME=donations
+```
+
+- `SUPABASE_STORAGE_BUCKET_NAME` defaults to `donations` if omitted, but setting it explicitly keeps uploads and CSV artifacts consistent across environments.
+- The heavier CSV and donation-drive API routes are configured with a longer Vercel function timeout to handle uploads, validation, and approval workflows.
 
 ## Health Check
 
