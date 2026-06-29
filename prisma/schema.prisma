@@ -1,0 +1,551 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/////////////////////////////////// [SCHOOL] ///////////////////////////////////
+model School {
+  //primary key
+  id             Int      @id @default(autoincrement())
+  // fields
+  schoolName     String   @unique @map("school_name") @db.VarChar(255)
+  address        String?  @db.VarChar(255)
+  mrtDesc        String?  @map("mrt_desc") @db.VarChar(255)
+  dgpCode        String?  @map("dgp_code") @db.VarChar(100)
+  mainlevelCode  String?  @map("mainlevel_code") @db.VarChar(50)
+  natureCode     String?  @map("nature_code") @db.VarChar(50)
+  typeCode       String?  @map("type_code") @db.VarChar(50)
+  postalCode     String?  @map("postal_code") @db.VarChar(50)
+  zoneCode       String?  @map("zone_code") @db.VarChar(50)
+  status         String?  @db.VarChar(50)
+  logoUrl        String?  @map("logo_url") @db.Text
+  isCooperating  Boolean  @default(false) @map("is_cooperating")
+  schoolEmail    String?  @map("school_email") @db.VarChar(255)
+  schoolNumber   String?  @map("school_number") @db.VarChar(50)
+  createdDate    DateTime @default(now()) @map("created_date")
+
+  //relations
+  users               User[]
+  donationDrives      DonationDrive[]
+  itemTypes           ItemType[]
+  schoolPartnerships  SchoolPartnership[]
+  products            Product[]
+
+  @@map("schools")
+}
+
+/////////////////////////////////// [SCHOOL PARTNERSHIPS] ///////////////////////////////////
+model SchoolPartnership {
+  //primary key
+  id              Int      @id @default(autoincrement())
+
+  //fields
+  activityName    String   @map("activity_name") @db.VarChar(100)
+  yearConducted   Int?     @map("year_conducted") @db.SmallInt
+  remarks         String?  @db.Text
+
+  //FKs
+  schoolId        Int      @map("school_id")
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_partnerships")
+}
+
+/////////////////////////////////// [USER] ///////////////////////////////////
+enum UserRole {
+  Admin        @map("admin")
+  SchoolStaff  @map("school_staff")
+  Parent       @map("parent")
+  PsgVolunteer @map("psg_volunteer")
+
+  @@map("user_role")
+}
+
+model User {
+  //primary key
+  id              Int       @id @default(autoincrement())
+  // fields
+  supabaseAuthId  String    @unique @map("supabase_auth_id") @db.Uuid
+  email           String    @unique @db.VarChar(255)
+  phoneNumber     String?   @map("phone_number") @db.VarChar(50)
+  firstName       String?   @map("first_name") @db.VarChar(255)
+  lastName        String?   @map("last_name") @db.VarChar(255)
+  fullName        String?   @map("full_name") @db.VarChar(255)
+  role            UserRole  @default(Parent) @map("role")
+  isActive        Boolean   @default(true) @map("is_active")
+  userFlags       Json?     @default("{\"onboarding_completed\": false}") @map("user_flags") @db.JsonB
+  numberChild     Int?      @default(0) @map("number_child")
+  childDetails    Json?     @default("[]") @map("child_details") @db.JsonB
+  createdDate     DateTime  @default(now()) @map("created_date")
+  lastLogin       DateTime? @map("last_login")
+  //FKs
+  schoolId        Int?      @map("school_id")
+  school          School?   @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  //relations
+  donationDrives  DonationDrive[]
+  transactions    Transaction[]
+  tags            Tag[]
+
+  @@index([schoolId])
+  @@index([role])
+  @@map("users")
+}
+
+/////////////////////////////////// [DONATION DRIVE] ///////////////////////////////////
+model DonationDrive {
+  //primary key
+  id              Int      @id @default(autoincrement())
+
+  //fields
+  driveName       String   @map("drive_name") @db.VarChar(255)
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime @map("end_date") @db.Date
+  location        String   @db.VarChar(255)
+
+  //FKs
+  schoolId        Int?     @map("school_id")
+  school          School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  createdByUserId Int      @map("created_by_user_id")
+  createdBy       User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  //relations
+  transactions    Transaction[]
+
+  @@index([startDate, endDate])
+  @@index([schoolId])
+  @@map("donation_drives")
+}
+
+/////////////////////////////////// [TRANSACTION] ///////////////////////////////////
+enum StorageLocation {
+  School @map("school")
+  TCC    @map("tcc")
+  Exited @map("exited")
+
+  @@map("storage_location")
+}
+
+enum ItemStatus {
+  GeneralOffice @map("general_office")
+  ForSale       @map("for_sale")
+  Sold          @map("sold")
+  ForRepurpose  @map("for_repurpose")
+  Repurposed    @map("repurposed")
+  Disposed      @map("disposed")
+
+  @@map("item_status")
+}
+
+enum TransactionType {
+  DonationIn   @map("donation_in")
+  Transfer     @map("transfer")
+  StatusChange @map("status_change")
+  Sale         @map("sale")
+  Repurposing  @map("repurposing")
+  Disposal     @map("disposal")
+
+  @@map("transaction_types")
+}
+
+model Transaction {
+  //primary key
+  id              Int              @id @default(autoincrement())
+
+  //fields
+  fromStoredAt    StorageLocation? @map("from_stored_at")
+  toStoredAt      StorageLocation? @map("to_stored_at")
+  fromStatus      ItemStatus?      @map("from_status")
+  toStatus        ItemStatus       @map("to_status")
+  quantity        Int
+  transactionType TransactionType  @map("transaction_type")
+  transactionDate DateTime         @default(now()) @map("transaction_date")
+  remarks         String?          @db.Text
+
+  //FKs
+  itemTypeId      Int              @map("item_type_id")
+  itemType        ItemType         @relation(fields: [itemTypeId], references: [id], onDelete: Restrict)
+
+  sizeOptionId    Int              @map("size_option_id")
+  sizeOption      SizeOption       @relation(fields: [sizeOptionId], references: [id], onDelete: Restrict)
+
+  donationDriveId Int?             @map("donation_drive_id")
+  donationDrive   DonationDrive?   @relation(fields: [donationDriveId], references: [id], onDelete: SetNull)
+
+  userId          Int              @map("user_id")
+  user            User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([itemTypeId])
+  @@index([transactionDate])
+  @@index([transactionType])
+  @@index([donationDriveId])
+  @@map("transactions")
+}
+
+/////////////////////////////////// [TAG] ///////////////////////////////////
+model Tag {
+  //primary key
+  id              Int      @id @default(autoincrement())
+
+  //fields
+  tagName         String   @unique @map("tag_name") @db.VarChar(50)
+  createdDate     DateTime @default(now()) @map("created_date")
+  isActive        Boolean  @default(true) @map("is_active")
+
+  //FKs
+  createdByUserId Int      @map("created_by_user_id")
+  createdBy       User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  //relations
+  itemTypeTags    ItemTypeTag[]
+
+  @@map("tags")
+}
+
+/////////////////////////////////// [ITEM TYPE TAG] ///////////////////////////////////
+model ItemTypeTag {
+  //FKs
+  itemTypeId Int      @map("item_type_id")
+  itemType   ItemType @relation(fields: [itemTypeId], references: [id], onDelete: Cascade)
+
+  tagId      Int      @map("tag_id")
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([itemTypeId, tagId])
+  @@map("item_type_tags")
+}
+
+/////////////////////////////////// [ITEM TYPE] ///////////////////////////////////
+enum Gender {
+  Unisex @map("unisex")
+  Male   @map("male")
+  Female @map("female")
+
+  @@map("gender")
+}
+
+model ItemType {
+  //primary key
+  id                    Int       @id @default(autoincrement())
+
+  //fields
+  gender                Gender    @default(Unisex)
+  imageUrl              String?   @map("image_url") @db.VarChar(500)
+  createdDate           DateTime  @default(now()) @map("created_date")
+
+  //FKs
+  schoolId              Int       @map("school_id")
+  school                School    @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+
+  categoryId            Int       @map("category_id")
+  category              Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  primaryColourId       Int       @map("primary_colour_id")
+  primaryColour         Colour    @relation("PrimaryColour", fields: [primaryColourId], references: [id], onDelete: Restrict)
+
+  secondaryColourId     Int?      @map("secondary_colour_id")
+  secondaryColour       Colour?   @relation("SecondaryColour", fields: [secondaryColourId], references: [id], onDelete: SetNull)
+
+  patternId             Int?      @map("pattern_id")
+  pattern               Pattern?  @relation(fields: [patternId], references: [id], onDelete: SetNull)
+
+  materialId            Int?      @map("material_id")
+  material              Material? @relation(fields: [materialId], references: [id], onDelete: SetNull)
+
+  sizeCategoryId        Int       @map("size_category_id")
+  sizeCategory          SizeCategory @relation(fields: [sizeCategoryId], references: [id], onDelete: Restrict)
+
+  //relations
+  transactions          Transaction[]
+  itemTypeTags          ItemTypeTag[]
+  inventoryBalance      InventoryBalance[]
+  recipeIngredients     RecipeIngredient[]
+
+  @@index([schoolId, categoryId])
+  @@index([primaryColourId])
+  @@index([gender])
+  @@map("item_types")
+}
+
+/////////////////////////////////// [COLOUR] ///////////////////////////////////
+model Colour {
+  //primary key
+  id              Int    @id @default(autoincrement())
+
+  //fields
+  colourName      String @unique @map("colour_name") @db.VarChar(50)
+  hexcode         String @unique @db.VarChar(7)
+
+  //relations
+  primaryColourItems   ItemType[] @relation("PrimaryColour")
+  secondaryColourItems ItemType[] @relation("SecondaryColour")
+
+  @@map("colours")
+}
+
+/////////////////////////////////// [PATTERN] ///////////////////////////////////
+model Pattern {
+  //primary key
+  id              Int    @id @default(autoincrement())
+
+  //fields
+  patternName     String @unique @map("pattern_name") @db.VarChar(50)
+
+  //relations
+  itemTypes       ItemType[]
+
+  @@map("patterns")
+}
+
+/////////////////////////////////// [MATERIAL] ///////////////////////////////////
+model Material {
+  //primary key
+  id              Int    @id @default(autoincrement())
+
+  //fields
+  materialName    String @unique @map("material_name") @db.VarChar(50)
+
+  //relations
+  itemTypes       ItemType[]
+
+  @@map("materials")
+}
+
+/////////////////////////////////// [SIZE CATEGORY] ///////////////////////////////////
+enum SizeType {
+  Alphabetical @map("alphabetical")
+  Numerical    @map("numerical")
+  OneSize      @map("one_size")
+
+  @@map("size_type")
+}
+
+model SizeCategory {
+  //primary key
+  id              Int      @id @default(autoincrement())
+
+  //fields
+  sizeType        SizeType @map("size_type")
+
+  //FKs
+  brandSupplierId Int?           @map("brand_supplier_id")
+  brandSupplier   BrandSupplier? @relation(fields: [brandSupplierId], references: [id], onDelete: SetNull)
+
+  //relations
+  sizeOptions     SizeOption[]
+  itemTypes       ItemType[]
+
+  @@map("size_categories")
+}
+
+/////////////////////////////////// [BRAND SUPPLIER] ///////////////////////////////////
+model BrandSupplier {
+  //primary key
+  id             Int    @id @default(autoincrement())
+
+  //fields
+  brandSupplier  String @unique @map("brand_supplier") @db.VarChar(50)
+
+  //relations
+  sizeCategories SizeCategory[]
+
+  @@map("brand_suppliers")
+}
+
+/////////////////////////////////// [SIZE OPTION] ///////////////////////////////////
+enum SizeClass {
+  S @map("S")
+  L @map("L")
+
+  @@map("size_class")
+}
+
+model SizeOption {
+  //primary key
+  id             Int          @id @default(autoincrement())
+
+  //fields
+  sizeName       String       @map("size_name") @db.VarChar(50)
+  sizeClass      SizeClass    @default(S) @map("size_class")
+  sortOrder      Int          @map("sort_order")
+
+  //FKs
+  sizeCategoryId Int          @map("size_category_id")
+  sizeCategory   SizeCategory @relation(fields: [sizeCategoryId], references: [id], onDelete: Cascade)
+
+  //relations
+  inventoryBalances InventoryBalance[]
+  transactions      Transaction[]
+
+  @@unique([sizeCategoryId, sizeName])
+  @@map("size_options")
+}
+
+/////////////////////////////////// [ITEM CATEGORY WEIGHTS] ///////////////////////////////////
+model Category {
+  //primary key
+  id           Int     @id @default(autoincrement())
+
+  //fields
+  categoryName String  @unique @map("category_name") @db.VarChar(100)
+  weightKg     Decimal @map("weight_kg") @db.Decimal(5, 3)
+
+  //relations
+  itemTypes    ItemType[]
+
+  @@map("item_category_weights")
+}
+
+/////////////////////////////////// [INVENTORY BALANCE] ///////////////////////////////////
+model InventoryBalance {
+  //primary key
+  id           Int             @id @default(autoincrement())
+
+  //fields
+  itemStatus   ItemStatus      @map("item_status")
+  quantity     Int
+  storedAt     StorageLocation @map("stored_at")
+  lastUpdated  DateTime        @updatedAt @map("last_updated")
+
+  //FKs
+  itemTypeId   Int             @map("item_type_id")
+  itemType     ItemType        @relation(fields: [itemTypeId], references: [id], onDelete: Restrict)
+
+  sizeOptionId Int             @map("size_option_id")
+  sizeOption   SizeOption      @relation(fields: [sizeOptionId], references: [id], onDelete: Restrict)
+
+  @@index([itemTypeId])
+  @@index([storedAt, itemStatus])
+  @@unique([itemTypeId, sizeOptionId, itemStatus, storedAt])
+  @@map("inventory_balance")
+}
+
+/////////////////////////////////// [PRODUCT] ///////////////////////////////////
+model Product {
+  //primary key
+  id            Int      @id @default(autoincrement())
+
+  //fields
+  productName   String   @map("product_name") @db.VarChar(500)
+  createdDate   DateTime @default(now()) @map("created_date")
+
+  //FKs
+  productTypeId Int      @map("product_type_id")
+  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+
+  schoolId      Int?     @map("school_id")
+  school        School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  //relations
+  productStyles ProductStyle[]
+
+  @@index([productTypeId])
+  @@index([schoolId])
+  @@map("products")
+}
+
+/////////////////////////////////// [PRODUCT TYPE] ///////////////////////////////////
+model ProductType {
+  //primary key
+  id       Int    @id @default(autoincrement())
+
+  //fields
+  typeName String @unique @map("type_name") @db.VarChar(500)
+
+  //relations
+  products Product[]
+
+  @@map("product_types")
+}
+
+/////////////////////////////////// [STYLE] ///////////////////////////////////
+model Style {
+  //primary key
+  id            Int    @id @default(autoincrement())
+
+  //fields
+  styleName     String @unique @map("style_name") @db.VarChar(500)
+
+  //relations
+  productStyles ProductStyle[]
+
+  @@map("styles")
+}
+
+/////////////////////////////////// [PRODUCT STYLE] ///////////////////////////////////
+model ProductStyle {
+  //primary key
+  id             Int      @id @default(autoincrement())
+
+  //fields
+  createdDate    DateTime @default(now()) @map("created_date")
+  lastUpdated    DateTime @updatedAt @map("last_updated")
+  imageUrl       String?  @map("image_url") @db.VarChar(500)
+
+  //FKs
+  styleId        Int      @map("style_id")
+  style          Style    @relation(fields: [styleId], references: [id], onDelete: Restrict)
+
+  productId      Int      @map("product_id")
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  //relations
+  productRecipes ProductRecipe[]
+
+  @@index([styleId])
+  @@index([productId])
+  @@unique([productId, styleId])
+  @@map("product_styles")
+}
+
+/////////////////////////////////// [PRODUCT RECIPE] ///////////////////////////////////
+model ProductRecipe {
+  //primary key
+  id             Int          @id @default(autoincrement())
+
+  //fields
+  recipeName     String       @map("recipe_name") @db.VarChar(500)
+  createdDate    DateTime     @default(now()) @map("created_date")
+  lastUpdated    DateTime     @updatedAt @map("last_updated")
+
+  //FKs
+  productStyleId Int          @map("product_style_id")
+  productStyle   ProductStyle @relation(fields: [productStyleId], references: [id], onDelete: Cascade)
+
+  //relations
+  recipeIngredients RecipeIngredient[]
+
+  @@index([productStyleId])
+  @@map("product_recipes")
+}
+
+/////////////////////////////////// [RECIPE INGREDIENT] ///////////////////////////////////
+model RecipeIngredient {
+  //primary key
+  id               Int           @id @default(autoincrement())
+
+  //fields
+  quantityRequired Decimal       @map("quantity_required") @db.Decimal(5, 1)
+  sizeClass        SizeClass?    @map("size_class")
+
+  //FKs
+  recipeId         Int           @map("recipe_id")
+  recipe           ProductRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  itemTypeId       Int           @map("item_type_id")
+  itemType         ItemType      @relation(fields: [itemTypeId], references: [id], onDelete: Restrict)
+
+  @@index([recipeId])
+  @@index([itemTypeId])
+  @@unique([recipeId, itemTypeId])
+  @@map("recipe_ingredients")
+}
