@@ -94,8 +94,8 @@ export default function SessionTracker() {
   useEffect(() => {
     // Don't track session on auth pages
     if (pathname?.startsWith('/login') || pathname?.startsWith('/register') ||
-        pathname?.startsWith('/reset-password') || pathname?.startsWith('/forgot-password') ||
-        pathname?.startsWith('/mfa') || pathname?.startsWith('/confirm-signup') ||
+        pathname?.startsWith('/forgot-password') ||
+        pathname?.startsWith('/mfa') ||
         pathname?.startsWith('/set-new-password')) {
       return;
     }

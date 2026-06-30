@@ -34,7 +34,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -51,13 +51,7 @@ export default function LoginPage() {
       if (totpFactors.length > 0) {
         // MFA is enrolled — redirect to MFA verification page
         const factorId = totpFactors[0].id;
-        const sessionId = data.session?.access_token ?? '';
-        const params = new URLSearchParams({
-          session: sessionId,
-          username: email,
-          factorId,
-        });
-        router.push(`/mfa?${params.toString()}`);
+        router.push(`/mfa?factorId=${encodeURIComponent(factorId)}`);
         return;
       }
 

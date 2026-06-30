@@ -94,7 +94,7 @@ import { proxy } from '@/proxy'
 import { NextRequest } from 'next/server'
 
 /** The public paths that should be accessible without auth */
-const PUBLIC_PATHS = ['/login', '/register', '/reset-password', '/api/health']
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/mfa', '/set-new-password', '/api/health']
 
 /** Base URL used for constructing test requests */
 const BASE_URL = 'http://localhost:3000'

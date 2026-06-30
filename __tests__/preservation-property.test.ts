@@ -276,7 +276,6 @@ describe('Preservation Property Tests - Property 2: Backend API Routes and Auth 
     expect(fileExists('app/(auth)/layout.tsx')).toBe(true)
     expect(fileExists('app/(auth)/login/page.tsx')).toBe(true)
     expect(fileExists('app/(auth)/register/page.tsx')).toBe(true)
-    expect(fileExists('app/(auth)/reset-password/page.tsx')).toBe(true)
 
     // (dashboard) route group exists
     expect(fileExists('app/(dashboard)/layout.tsx')).toBe(true)

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -13,7 +12,6 @@ import EmailRounded from '@mui/icons-material/EmailRounded';
 import SnackbarAlert from '@/components/SnackbarAlert';
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -48,7 +46,7 @@ export default function ForgotPasswordPage() {
       if (!res.ok) {
         setSnackbar({
           open: true,
-          message: data.error || 'Failed to send verification code. Please try again.',
+          message: data.error || 'Failed to send password reset link. Please try again.',
           severity: 'error',
         });
         return;
@@ -56,13 +54,9 @@ export default function ForgotPasswordPage() {
 
       setSnackbar({
         open: true,
-        message: 'Verification code sent! Redirecting...',
+        message: 'Check your email for a password reset link.',
         severity: 'success',
       });
-
-      // Redirect to reset-password page with username
-      const params = new URLSearchParams({ username: email.trim() });
-      router.push(`/reset-password?${params.toString()}`);
     } catch {
       setSnackbar({
         open: true,
@@ -88,7 +82,7 @@ export default function ForgotPasswordPage() {
         variant="body2"
         sx={{ color: 'text.secondary', textAlign: 'center', mb: 3 }}
       >
-        Enter your email address and we&apos;ll send you a verification code to reset your
+        Enter your email address and we&apos;ll send you a link to reset your
         password.
       </Typography>
 
@@ -127,7 +121,7 @@ export default function ForgotPasswordPage() {
           '&:hover': { backgroundColor: '#5a9a48' },
         }}
       >
-        {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Verification Code'}
+        {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Reset Link'}
       </Button>
 
       <Box sx={{ textAlign: 'center', mt: 1.5 }}>

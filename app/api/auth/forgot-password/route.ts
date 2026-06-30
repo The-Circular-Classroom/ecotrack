@@ -6,15 +6,11 @@ import { createApiLogger } from '@/lib/logger'
 /**
  * POST /api/auth/forgot-password
  *
- * Initiates a code-based (OTP) password reset flow by sending a verification
- * code to the user's email. This is SEPARATE from the existing
- * POST /api/auth/reset-password which sends a link.
+ * Initiates a link-based password reset flow. Supabase sends an email with
+ * a magic link that redirects the user to /api/auth/callback which exchanges
+ * the code for a session, then redirects to /set-new-password.
  *
- * The frontend forgot-password page calls this endpoint, then redirects the
- * user to the reset-password page where they enter the code + new password.
- *
- * Requirements: 2.5 (code-based password reset flow)
- *               3.1 (new endpoint added alongside existing ones)
+ * Requirements: 2.5 (password reset flow via Supabase email link)
  */
 export async function POST(request: NextRequest) {
   const logger = createApiLogger('POST /api/auth/forgot-password');
@@ -33,13 +29,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    logger.debug('Calling Supabase resetPasswordForEmail');
+    logger.debug('Calling Supabase resetPasswordForEmail with redirectTo');
     const supabase = await createSupabaseServerClient()
+    const origin = request.nextUrl.origin
 
-    // Use resetPasswordForEmail to trigger OTP code delivery.
-    // Supabase sends an OTP code when no redirectTo is provided or when
-    // configured for code-based flow. We omit redirectTo to get OTP behavior.
-    await supabase.auth.resetPasswordForEmail(email)
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/api/auth/callback?next=/set-new-password`,
+    })
 
     logger.info('Reset password email sent', { email });
 
@@ -48,7 +44,7 @@ export async function POST(request: NextRequest) {
     logger.info('Response sent', { status: 200 });
     return NextResponse.json({
       success: true,
-      message: 'Verification code sent to email',
+      message: 'Password reset link sent',
     })
   } catch (err) {
     logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });

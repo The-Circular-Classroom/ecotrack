@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const logger = createApiLogger('GET /api/auth/callback');
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/overview'
   logger.info('Request received', { hasCode: !!code, next });
 
   if (!code) {

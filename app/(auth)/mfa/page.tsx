@@ -23,8 +23,6 @@ function MfaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const session = searchParams.get('session') ?? '';
-  const username = searchParams.get('username') ?? '';
   const factorId = searchParams.get('factorId') ?? '';
 
   const [code, setCode] = useState('');
@@ -47,57 +45,46 @@ function MfaContent() {
       return;
     }
 
+    if (!factorId) {
+      setSnackbar({
+        open: true,
+        message: 'MFA factor not found. Please sign in again.',
+        severity: 'error',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       const supabase = createSupabaseBrowserClient();
 
-      if (factorId) {
-        // Use Supabase MFA challenge/verify flow
-        const { data: challengeData, error: challengeError } =
-          await supabase.auth.mfa.challenge({ factorId });
+      // Use Supabase client-side MFA challenge/verify flow
+      const { data: challengeData, error: challengeError } =
+        await supabase.auth.mfa.challenge({ factorId });
 
-        if (challengeError) {
-          setSnackbar({
-            open: true,
-            message: challengeError.message,
-            severity: 'error',
-          });
-          return;
-        }
-
-        const { error: verifyError } = await supabase.auth.mfa.verify({
-          factorId,
-          challengeId: challengeData.id,
-          code,
+      if (challengeError) {
+        setSnackbar({
+          open: true,
+          message: challengeError.message,
+          severity: 'error',
         });
+        return;
+      }
 
-        if (verifyError) {
-          setSnackbar({
-            open: true,
-            message: verifyError.message,
-            severity: 'error',
-          });
-          return;
-        }
-      } else {
-        // Fallback: call verify-mfa API endpoint
-        const res = await fetch('/api/auth/verify-mfa', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mfaCode: code, session, username }),
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challengeData.id,
+        code,
+      });
+
+      if (verifyError) {
+        setSnackbar({
+          open: true,
+          message: verifyError.message,
+          severity: 'error',
         });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setSnackbar({
-            open: true,
-            message: data.error || 'MFA verification failed. Please try again.',
-            severity: 'error',
-          });
-          return;
-        }
+        return;
       }
 
       setSnackbar({

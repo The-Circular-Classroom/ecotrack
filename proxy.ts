@@ -4,7 +4,6 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PUBLIC_PATHS = [
   '/login',
   '/register',
-  '/reset-password',
   '/api/health',
   '/api/auth/login',
   '/api/auth/register',
@@ -12,13 +11,10 @@ const PUBLIC_PATHS = [
   '/api/auth/callback',
   '/api/auth/signup',
   '/api/auth/forgot-password',
-  '/api/auth/confirm-signup',
   '/api/auth/set-new-password',
-  '/api/auth/verify-mfa',
   '/forgot-password',
   '/mfa',
   '/set-new-password',
-  '/confirm-signup',
 ]
 
 export async function proxy(request: NextRequest) {

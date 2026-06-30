@@ -7,31 +7,29 @@ import { createApiLogger } from '@/lib/logger'
 /**
  * POST /api/auth/set-new-password
  *
- * Handles forced password change scenarios (e.g., NEW_PASSWORD_REQUIRED challenge
- * after first login with a temporary password).
+ * Sets a new password for the current user. Supports two flows:
  *
- * Accepts the session context, username, and new password. Validates that
- * passwords match, then uses Supabase admin to update the user's password.
- * Returns session tokens on success so the user can proceed to the dashboard.
+ * 1. Session-based (primary): User arrives via password reset link → callback
+ *    exchanged code for session → user has a valid session. Uses
+ *    supabase.auth.updateUser({ password }) to set the new password.
  *
- * Requirements: 2.12 (forced password change flow)
- *               3.1 (new endpoint added alongside existing ones)
+ * 2. Admin fallback: If `username` and `session` are provided (legacy forced
+ *    password change flow), uses admin API to update the user's password.
+ *
+ * Requirements: 2.12 (password reset / forced password change flow)
  */
 export async function POST(request: NextRequest) {
   const logger = createApiLogger('POST /api/auth/set-new-password');
   try {
     const body = await request.json()
     const { session, username, password, confirmPassword } = body
-    logger.info('Request received', { username, hasSession: !!session });
+    logger.info('Request received', { username: username || '(session-based)', hasSession: !!session });
 
-    // Validate required fields
-    if (!session || !username || !password || !confirmPassword) {
-      logger.warn('Validation failed: missing required fields', { hasSession: !!session, hasUsername: !!username, hasPassword: !!password, hasConfirmPassword: !!confirmPassword });
+    // Validate password and confirmPassword are present
+    if (!password || !confirmPassword) {
+      logger.warn('Validation failed: missing password fields');
       return NextResponse.json(
-        {
-          error: 'validation_error',
-          message: 'Session, username, password, and confirmPassword are required',
-        },
+        { error: 'validation_error', message: 'Password and confirmPassword are required' },
         { status: 400 }
       )
     }
@@ -57,38 +55,88 @@ export async function POST(request: NextRequest) {
 
     logger.debug('Validation passed');
 
-    // Look up the user by email (username) using admin client
-    logger.debug('Looking up user by email');
-    const { data: userList, error: listError } =
-      await supabaseAdmin.auth.admin.listUsers()
+    // Legacy admin flow: if username and session are provided, use admin API
+    if (username && session) {
+      logger.debug('Using admin fallback flow (username + session provided)');
 
-    if (listError) {
-      logger.error('Failed to list users', { error: listError.message });
-      return NextResponse.json(
-        { error: 'internal_error', message: 'Failed to look up user' },
-        { status: 500 }
+      // Look up the user by email (username) using admin client
+      const { data: userList, error: listError } =
+        await supabaseAdmin.auth.admin.listUsers()
+
+      if (listError) {
+        logger.error('Failed to list users', { error: listError.message });
+        return NextResponse.json(
+          { error: 'internal_error', message: 'Failed to look up user' },
+          { status: 500 }
+        )
+      }
+
+      const user = userList?.users?.find(
+        (u) => u.email?.toLowerCase() === username.toLowerCase()
       )
-    }
 
-    const user = userList?.users?.find(
-      (u) => u.email?.toLowerCase() === username.toLowerCase()
-    )
+      if (!user) {
+        logger.warn('User not found', { username });
+        return NextResponse.json(
+          { error: 'user_not_found', message: 'User not found' },
+          { status: 404 }
+        )
+      }
 
-    if (!user) {
-      logger.warn('User not found', { username });
-      return NextResponse.json(
-        { error: 'user_not_found', message: 'User not found' },
-        { status: 404 }
-      )
-    }
+      logger.debug('User found, updating password via admin', { userId: user.id });
 
-    logger.debug('User found, updating password', { userId: user.id });
+      const { error: updateError } =
+        await supabaseAdmin.auth.admin.updateUserById(user.id, { password })
 
-    // Update the user's password using admin client (forced password change)
-    const { error: updateError } =
-      await supabaseAdmin.auth.admin.updateUserById(user.id, {
-        password,
+      if (updateError) {
+        logger.error('Password update failed', { error: updateError.message, userId: user.id });
+        return NextResponse.json(
+          { error: 'update_failed', message: 'Failed to update password' },
+          { status: 400 }
+        )
+      }
+
+      logger.info('Password updated successfully (admin flow)', { userId: user.id });
+
+      // Sign the user in with the new password to generate session tokens
+      const supabase = await createSupabaseServerClient()
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({ email: username, password })
+
+      if (signInError) {
+        logger.error('Sign-in after password update failed', { error: signInError.message, userId: user.id });
+        return NextResponse.json(
+          { error: 'auth_failed', message: 'Password updated but sign-in failed' },
+          { status: 500 }
+        )
+      }
+
+      logger.info('Response sent (admin flow)', { status: 200, userId: user.id });
+      return NextResponse.json({
+        success: true,
+        access_token: signInData.session.access_token,
+        refresh_token: signInData.session.refresh_token,
+        expires_in: signInData.session.expires_in,
       })
+    }
+
+    // Primary flow: session-based password update (user has session from callback)
+    logger.debug('Using session-based flow');
+    const supabase = await createSupabaseServerClient()
+
+    const { data: { user }, error: getUserError } = await supabase.auth.getUser()
+
+    if (getUserError || !user) {
+      logger.warn('No valid session found', { error: getUserError?.message });
+      return NextResponse.json(
+        { error: 'unauthorized', message: 'No valid session. Please use the reset link from your email.' },
+        { status: 401 }
+      )
+    }
+
+    logger.debug('User found from session, updating password', { userId: user.id });
+
+    const { error: updateError } = await supabase.auth.updateUser({ password })
 
     if (updateError) {
       logger.error('Password update failed', { error: updateError.message, userId: user.id });
@@ -98,32 +146,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    logger.info('Password updated successfully', { userId: user.id });
-
-    // Sign the user in with the new password to generate session tokens
-    logger.debug('Signing in user with new password');
-    const supabase = await createSupabaseServerClient()
-    const { data: signInData, error: signInError } =
-      await supabase.auth.signInWithPassword({
-        email: username,
-        password,
-      })
-
-    if (signInError) {
-      logger.error('Sign-in after password update failed', { error: signInError.message, userId: user.id });
-      return NextResponse.json(
-        { error: 'auth_failed', message: 'Password updated but sign-in failed' },
-        { status: 500 }
-      )
-    }
-
-    logger.info('Response sent', { status: 200, userId: user.id });
-    return NextResponse.json({
-      success: true,
-      access_token: signInData.session.access_token,
-      refresh_token: signInData.session.refresh_token,
-      expires_in: signInData.session.expires_in,
-    })
+    logger.info('Password updated successfully (session flow)', { userId: user.id });
+    logger.info('Response sent', { status: 200 });
+    return NextResponse.json({ success: true })
   } catch (err) {
     logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(

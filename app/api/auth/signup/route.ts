@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           full_name: fullName || '',
           phone_number: phoneNumber || '',
         },
-        emailRedirectTo: `${request.nextUrl.origin}/api/auth/callback`,
+        emailRedirectTo: `${request.nextUrl.origin}/api/auth/callback?next=/overview`,
       },
     })
 
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Verification code sent',
+        message: 'Check your email to confirm your account',
         session: null,
       },
       { status: 201 }

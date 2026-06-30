@@ -24,7 +24,6 @@ function readPageSource(filePath: string): string {
 const PAGE_ROUTE_TO_FILE: Record<string, string> = {
   '/login': 'app/(auth)/login/page.tsx',
   '/register': 'app/(auth)/register/page.tsx',
-  '/reset-password': 'app/(auth)/reset-password/page.tsx',
   '/overview': 'app/(dashboard)/overview/page.tsx',
   '/inventory': 'app/(dashboard)/inventory/page.tsx',
   '/analytics': 'app/(dashboard)/analytics/page.tsx',

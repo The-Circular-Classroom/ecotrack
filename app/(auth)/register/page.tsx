@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -19,7 +18,6 @@ import PhoneRounded from '@mui/icons-material/PhoneRounded';
 import SnackbarAlert from '@/components/SnackbarAlert';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -93,8 +91,12 @@ export default function RegisterPage() {
         return;
       }
 
-      // On success, redirect to confirm-signup with username
-      router.push(`/confirm-signup?username=${encodeURIComponent(email.trim())}`);
+      // On success, show message to check email for confirmation link
+      setSnackbar({
+        open: true,
+        message: 'Check your email to confirm your account.',
+        severity: 'success',
+      });
     } catch {
       setSnackbar({
         open: true,

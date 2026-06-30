@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState, FormEvent } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -14,21 +14,10 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import LockRounded from '@mui/icons-material/LockRounded';
 import SnackbarAlert from '@/components/SnackbarAlert';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function SetNewPasswordPage() {
-  return (
-    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
-      <SetNewPasswordContent />
-    </Suspense>
-  );
-}
-
-function SetNewPasswordContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const session = searchParams.get('session') ?? '';
-  const username = searchParams.get('username') ?? '';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -74,18 +63,14 @@ function SetNewPasswordContent() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/set-new-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session, username, password, confirmPassword }),
-      });
+      // User arrives here after clicking the reset link → callback exchanged code → session exists
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.updateUser({ password });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (error) {
         setSnackbar({
           open: true,
-          message: data.error || 'Failed to set new password. Please try again.',
+          message: error.message || 'Failed to set new password. Please try again.',
           severity: 'error',
         });
         return;
@@ -124,7 +109,7 @@ function SetNewPasswordContent() {
         variant="body2"
         sx={{ color: 'text.secondary', textAlign: 'center', mb: 3 }}
       >
-        Your account requires a password change. Please set a new password to continue.
+        Enter your new password below.
       </Typography>
 
       <TextField
@@ -135,8 +120,9 @@ function SetNewPasswordContent() {
         onChange={(e) => setPassword(e.target.value)}
         required
         fullWidth
-        placeholder="••••••••"
+        placeholder="Minimum 8 characters"
         margin="normal"
+        helperText="Must be at least 8 characters"
         slotProps={{
           input: {
             startAdornment: (
@@ -168,7 +154,7 @@ function SetNewPasswordContent() {
         onChange={(e) => setConfirmPassword(e.target.value)}
         required
         fullWidth
-        placeholder="••••••••"
+        placeholder="Repeat your new password"
         margin="normal"
         slotProps={{
           input: {
