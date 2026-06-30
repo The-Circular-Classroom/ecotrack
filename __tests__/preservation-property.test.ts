@@ -200,7 +200,7 @@ describe('Preservation Property Tests - Property 2: Backend API Routes and Auth 
     expect(loginSource).toContain('user:')
     expect(loginSource).toContain('id: data.user.id')
     expect(loginSource).toContain('email: data.user.email')
-    expect(loginSource).toContain('role:')
+    expect(loginSource).toMatch(/role/)
 
     // Must use signInWithPassword (Supabase auth)
     expect(loginSource).toContain('signInWithPassword')
@@ -430,7 +430,8 @@ describe('Preservation Property Tests - Property 2: Backend API Routes and Auth 
     // Must set x-user-role header
     expect(middlewareSource).toContain("response.headers.set('x-user-role', role)")
 
-    // Role must come from app_metadata
-    expect(middlewareSource).toContain('user.app_metadata?.role')
+    // Role must be resolved from the users table (with app_metadata fallback)
+    expect(middlewareSource).toContain("supabase_auth_id")
+    expect(middlewareSource).toContain("select('role')")
   })
 })

@@ -46,6 +46,25 @@ export async function POST(request: NextRequest) {
     }
 
     logger.info('Authentication succeeded', { userId: data.user.id, email });
+
+    // Get role from the users table (canonical source)
+    let role = 'Parent'
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('supabase_auth_id', data.user.id)
+      .single()
+    if (dbUser?.role) {
+      const roleMap: Record<string, string> = {
+        admin: 'Admin',
+        school_staff: 'SchoolStaff',
+        parent: 'Parent',
+        psg_volunteer: 'PsgVolunteer',
+      }
+      role = roleMap[dbUser.role] || 'Parent'
+    }
+    logger.debug('Role resolved from users table', { role });
+
     logger.info('Response sent', { status: 200 });
     return NextResponse.json({
       access_token: data.session.access_token,
@@ -54,7 +73,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: data.user.id,
         email: data.user.email,
-        role: data.user.app_metadata?.role || 'Parent',
+        role,
       },
     })
   } catch (err) {

@@ -161,6 +161,15 @@ function setupNoAuth() {
  * Helper: set up the mock Supabase client to simulate a valid authenticated user
  */
 function setupValidAuth(role: string = 'Parent') {
+  // Map application role name to DB enum value
+  const dbRoleMap: Record<string, string> = {
+    Admin: 'admin',
+    SchoolStaff: 'school_staff',
+    Parent: 'parent',
+    PsgVolunteer: 'psg_volunteer',
+  }
+  const dbRole = dbRoleMap[role] || 'parent'
+
   mockGetUser.mockResolvedValue({
     data: {
       user: {
@@ -171,8 +180,16 @@ function setupValidAuth(role: string = 'Parent') {
     },
     error: null,
   })
+
+  // Mock the .from('users').select('role').eq('supabase_auth_id', ...).single() chain
+  const mockSingle = vi.fn().mockResolvedValue({ data: { role: dbRole }, error: null })
+  const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
+  const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
+  const mockFrom = vi.fn().mockReturnValue({ select: mockSelect })
+
   mockCreateServerClient.mockReturnValue({
     auth: { getUser: mockGetUser },
+    from: mockFrom,
   })
 }
 

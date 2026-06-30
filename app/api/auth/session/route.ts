@@ -31,12 +31,30 @@ export async function GET() {
     }
 
     logger.info('Session valid', { userId: user.id });
+
+    // Get role from the users table (canonical source)
+    let role = 'Parent'
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('supabase_auth_id', user.id)
+      .single()
+    if (dbUser?.role) {
+      const roleMap: Record<string, string> = {
+        admin: 'Admin',
+        school_staff: 'SchoolStaff',
+        parent: 'Parent',
+        psg_volunteer: 'PsgVolunteer',
+      }
+      role = roleMap[dbUser.role] || 'Parent'
+    }
+
     logger.info('Response sent', { status: 200 });
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        role: user.app_metadata?.role || 'Parent',
+        role,
         user_metadata: user.user_metadata,
       },
     })

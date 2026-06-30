@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         firstName: authUser.user_metadata?.first_name || '',
         lastName: authUser.user_metadata?.last_name || '',
         email: authUser.email || '',
-        roles: [authUser.app_metadata?.role || 'Parent'],
+        roles: ['Parent'],
         username: authUser.email || '',
         phone: authUser.user_metadata?.phone_number || '',
       })

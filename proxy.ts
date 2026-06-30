@@ -65,8 +65,31 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Look up the user's role from the users table (canonical source)
+  let role = 'Parent'
+  try {
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('supabase_auth_id', user.id)
+      .single()
+    if (dbUser?.role) {
+      // DB stores enum values like 'admin', 'school_staff', 'parent', 'psg_volunteer'
+      // Map them to the application role names
+      const roleMap: Record<string, string> = {
+        admin: 'Admin',
+        school_staff: 'SchoolStaff',
+        parent: 'Parent',
+        psg_volunteer: 'PsgVolunteer',
+      }
+      role = roleMap[dbUser.role] || 'Parent'
+    }
+  } catch {
+    // Fallback to app_metadata if DB lookup fails
+    role = user.app_metadata?.role || 'Parent'
+  }
+
   // Attach user info to headers for downstream use
-  const role = user.app_metadata?.role || 'Parent'
   response.headers.set('x-user-id', user.id)
   response.headers.set('x-user-role', role)
 
