@@ -7,8 +7,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
+  // Remove sslmode from connection string to prevent it from overriding our explicit ssl config
+  const connectionString = process.env.POSTGRES_PRISMA_URL!;
+  const url = new URL(connectionString);
+  url.searchParams.delete('sslmode');
+
   const pool = new Pool({
-    connectionString: process.env.POSTGRES_PRISMA_URL!,
+    connectionString: url.toString(),
     ssl: { rejectUnauthorized: false },
   });
   const adapter = new PrismaPg(pool);
