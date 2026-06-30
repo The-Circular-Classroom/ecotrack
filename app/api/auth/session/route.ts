@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma/client'
 import { createApiLogger } from '@/lib/logger'
 
 /**
@@ -32,21 +33,14 @@ export async function GET() {
 
     logger.info('Session valid', { userId: user.id });
 
-    // Get role from the users table (canonical source)
+    // Get role from the users table via Prisma (canonical source)
     let role = 'Parent'
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('role')
-      .eq('supabase_auth_id', user.id)
-      .single()
+    const dbUser = await prisma.user.findUnique({
+      where: { supabaseAuthId: user.id },
+      select: { role: true },
+    })
     if (dbUser?.role) {
-      const roleMap: Record<string, string> = {
-        admin: 'Admin',
-        school_staff: 'SchoolStaff',
-        parent: 'Parent',
-        psg_volunteer: 'PsgVolunteer',
-      }
-      role = roleMap[dbUser.role] || 'Parent'
+      role = dbUser.role
     }
 
     logger.info('Response sent', { status: 200 });

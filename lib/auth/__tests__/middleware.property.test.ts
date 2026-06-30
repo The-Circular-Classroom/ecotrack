@@ -157,6 +157,26 @@ function setupNoAuth() {
   })
 }
 
+// Module-level variable to control what role the admin client mock returns
+let mockDbRole = 'parent'
+
+// Mock @supabase/supabase-js for the admin client used in role lookup
+vi.mock('@supabase/supabase-js', () => {
+  return {
+    createClient: vi.fn().mockImplementation(() => ({
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockImplementation(() =>
+              Promise.resolve({ data: { role: mockDbRole }, error: null })
+            ),
+          }),
+        }),
+      }),
+    })),
+  }
+})
+
 /**
  * Helper: set up the mock Supabase client to simulate a valid authenticated user
  */
@@ -168,7 +188,7 @@ function setupValidAuth(role: string = 'Parent') {
     Parent: 'parent',
     PsgVolunteer: 'psg_volunteer',
   }
-  const dbRole = dbRoleMap[role] || 'parent'
+  mockDbRole = dbRoleMap[role] || 'parent'
 
   mockGetUser.mockResolvedValue({
     data: {
@@ -181,15 +201,8 @@ function setupValidAuth(role: string = 'Parent') {
     error: null,
   })
 
-  // Mock the .from('users').select('role').eq('supabase_auth_id', ...).single() chain
-  const mockSingle = vi.fn().mockResolvedValue({ data: { role: dbRole }, error: null })
-  const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-  const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-  const mockFrom = vi.fn().mockReturnValue({ select: mockSelect })
-
   mockCreateServerClient.mockReturnValue({
     auth: { getUser: mockGetUser },
-    from: mockFrom,
   })
 }
 

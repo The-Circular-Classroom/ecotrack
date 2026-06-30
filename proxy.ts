@@ -66,9 +66,16 @@ export async function proxy(request: NextRequest) {
   }
 
   // Look up the user's role from the users table (canonical source)
+  // Use the service role key to bypass RLS policies on the users table
   let role = 'Parent'
   try {
-    const { data: dbUser } = await supabase
+    const { createClient } = await import('@supabase/supabase-js')
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!,
+      { auth: { persistSession: false } }
+    )
+    const { data: dbUser } = await adminClient
       .from('users')
       .select('role')
       .eq('supabase_auth_id', user.id)
