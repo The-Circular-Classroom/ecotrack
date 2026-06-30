@@ -6,14 +6,8 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
-import Alert from '@mui/material/Alert';
 import InputAdornment from '@mui/material/InputAdornment';
 import Chip from '@mui/material/Chip';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
@@ -22,18 +16,24 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import EditRounded from '@mui/icons-material/EditRounded';
 import DeleteRounded from '@mui/icons-material/DeleteRounded';
 import CloseRounded from '@mui/icons-material/CloseRounded';
+import SyncRounded from '@mui/icons-material/SyncRounded';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import CreateUserModal from '@/components/CreateUserModal';
+import StyledConfirmDialog from '@/components/StyledConfirmDialog';
+import StatusBadge from '@/components/ui/StatusBadge';
 import SnackbarAlert from '@/components/SnackbarAlert';
 
 // Types
 interface User {
   id: number;
-  supabaseAuthId: string;
+  username?: string;
   email: string;
   role: string;
   firstName: string | null;
@@ -41,14 +41,9 @@ interface User {
   fullName: string | null;
   isActive: boolean;
   schoolId: number | null;
-  createdDate: string;
-}
-
-interface PaginationInfo {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
+  schoolName?: string | null;
+  createdAt?: string;
+  createdDate?: string;
 }
 
 interface SnackbarState {
@@ -74,7 +69,7 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: 10,
   });
   const [totalRows, setTotalRows] = useState(0);
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -85,14 +80,6 @@ export default function UsersPage() {
 
   // Create modal state
   const [createOpen, setCreateOpen] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    role: 'Parent' as string,
-    schoolId: '',
-  });
 
   // Edit drawer state
   const [editOpen, setEditOpen] = useState(false);
@@ -111,27 +98,27 @@ export default function UsersPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
-  // Fetch users
+  // Fetch users from GET /api/users/list?page=&limit=&username=
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({
         page: String(paginationModel.page + 1),
-        pageSize: String(paginationModel.pageSize),
+        limit: String(paginationModel.pageSize),
       });
       if (searchQuery.trim()) {
-        params.set('email', searchQuery.trim());
+        params.set('username', searchQuery.trim());
       }
 
-      const res = await fetch(`/api/users?${params.toString()}`);
+      const res = await fetch(`/api/users/list?${params.toString()}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || `Request failed with status ${res.status}`);
       }
-      const json: { users: User[]; pagination: PaginationInfo } = await res.json();
-      setUsers(json.users);
-      setTotalRows(json.pagination.total);
+      const json = await res.json();
+      setUsers(json.data || []);
+      setTotalRows(json.total || 0);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load users';
       setError(message);
@@ -152,43 +139,15 @@ export default function UsersPage() {
     }
   };
 
-  // Create user
-  const handleCreate = async () => {
-    if (!createForm.email || !createForm.role) {
-      setSnackbar({ open: true, message: 'Email and role are required', severity: 'warning' });
-      return;
-    }
-    setCreateLoading(true);
-    try {
-      const body: Record<string, unknown> = {
-        email: createForm.email,
-        role: createForm.role,
-      };
-      if (createForm.firstName) body.firstName = createForm.firstName;
-      if (createForm.lastName) body.lastName = createForm.lastName;
-      if (createForm.schoolId) body.schoolId = parseInt(createForm.schoolId, 10);
+  // Sync / refresh
+  const handleSync = () => {
+    fetchUsers();
+  };
 
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || 'Failed to create user');
-      }
-
-      setSnackbar({ open: true, message: 'User created successfully', severity: 'success' });
-      setCreateOpen(false);
-      setCreateForm({ email: '', firstName: '', lastName: '', role: 'Parent', schoolId: '' });
-      fetchUsers();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to create user';
-      setSnackbar({ open: true, message, severity: 'error' });
-    } finally {
-      setCreateLoading(false);
-    }
+  // Create user success callback
+  const handleCreateSuccess = () => {
+    setSnackbar({ open: true, message: 'User created successfully', severity: 'success' });
+    fetchUsers();
   };
 
   // Edit user
@@ -212,6 +171,7 @@ export default function UsersPage() {
         firstName: editForm.firstName,
         lastName: editForm.lastName,
         role: editForm.role,
+        isActive: editForm.isActive,
         schoolId: editForm.schoolId ? parseInt(editForm.schoolId, 10) : null,
       };
 
@@ -303,36 +263,25 @@ export default function UsersPage() {
     {
       field: 'isActive',
       headerName: 'Status',
-      width: 100,
+      width: 110,
       renderCell: (params) => (
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: params.value ? 'success.main' : 'error.main',
-            }}
-          />
-          <Typography variant="body2">
-            {params.value ? 'Active' : 'Inactive'}
-          </Typography>
-        </Box>
+        <StatusBadge status={params.value ? 'active' : 'inactive'} />
       ),
     },
     {
       field: 'schoolId',
       headerName: 'School',
-      width: 100,
-      valueGetter: (_value: unknown, row: User) => row.schoolId ?? '—',
+      width: 120,
+      valueGetter: (_value: unknown, row: User) => row.schoolName || row.schoolId || '—',
     },
     {
-      field: 'createdDate',
+      field: 'createdAt',
       headerName: 'Created',
       width: 120,
       valueGetter: (_value: unknown, row: User) => {
-        if (!row.createdDate) return '';
-        return new Date(row.createdDate).toLocaleDateString();
+        const date = row.createdAt || row.createdDate;
+        if (!date) return '';
+        return new Date(date).toLocaleDateString();
       },
     },
     {
@@ -373,7 +322,7 @@ export default function UsersPage() {
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button variant="outlined" onClick={() => fetchUsers()}>
+        <Button variant="outlined" onClick={handleSync}>
           Retry
         </Button>
       </Box>
@@ -403,7 +352,7 @@ export default function UsersPage() {
       >
         <TextField
           size="small"
-          placeholder="Search by email..."
+          placeholder="Search by username..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearchKeyDown}
@@ -419,6 +368,14 @@ export default function UsersPage() {
           sx={{ minWidth: 250, flex: 1, maxWidth: 400 }}
         />
         <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<SyncRounded />}
+            onClick={handleSync}
+          >
+            Sync
+          </Button>
           <Button
             variant="contained"
             size="small"
@@ -486,73 +443,11 @@ export default function UsersPage() {
       </Paper>
 
       {/* Create User Modal */}
-      <Dialog
+      <CreateUserModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add New User</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            <TextField
-              label="Email"
-              type="email"
-              required
-              fullWidth
-              value={createForm.email}
-              onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
-            />
-            <TextField
-              label="First Name"
-              fullWidth
-              value={createForm.firstName}
-              onChange={(e) => setCreateForm((f) => ({ ...f, firstName: e.target.value }))}
-            />
-            <TextField
-              label="Last Name"
-              fullWidth
-              value={createForm.lastName}
-              onChange={(e) => setCreateForm((f) => ({ ...f, lastName: e.target.value }))}
-            />
-            <FormControl fullWidth>
-              <InputLabel id="create-role-label">Role</InputLabel>
-              <Select
-                labelId="create-role-label"
-                label="Role"
-                value={createForm.role}
-                onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value }))}
-              >
-                {ROLES.map((role) => (
-                  <MenuItem key={role} value={role}>
-                    {role}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="School ID (optional)"
-              type="number"
-              fullWidth
-              value={createForm.schoolId}
-              onChange={(e) => setCreateForm((f) => ({ ...f, schoolId: e.target.value }))}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCreateOpen(false)} disabled={createLoading}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            disabled={createLoading}
-            startIcon={createLoading ? <CircularProgress size={16} /> : undefined}
-          >
-            {createLoading ? 'Creating...' : 'Create User'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSuccess={handleCreateSuccess}
+      />
 
       {/* Edit User Drawer */}
       <Drawer
@@ -640,35 +535,24 @@ export default function UsersPage() {
       </Drawer>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
+      <StyledConfirmDialog
         open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Delete User</DialogTitle>
-        <DialogContent>
-          <Typography>
+        onClose={() => {
+          setDeleteOpen(false);
+          setDeleteUser(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete User"
+        message={
+          <>
             Are you sure you want to delete{' '}
-            <strong>{deleteUser?.fullName || deleteUser?.email}</strong>? This action cannot be
-            undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteConfirm}
-            disabled={deleteLoading}
-            startIcon={deleteLoading ? <CircularProgress size={16} /> : undefined}
-          >
-            {deleteLoading ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <strong>{deleteUser?.fullName || deleteUser?.email}</strong>? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        confirmColor="error"
+        loading={deleteLoading}
+      />
 
       <SnackbarAlert
         open={snackbar.open}

@@ -30,7 +30,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <AppRouterCacheProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {children}
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          {children}
+        </div>
       </ThemeProvider>
     </AppRouterCacheProvider>
   );

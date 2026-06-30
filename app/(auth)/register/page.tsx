@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -14,17 +15,21 @@ import EmailRounded from '@mui/icons-material/EmailRounded';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import PersonOutline from '@mui/icons-material/PersonOutline';
+import PhoneRounded from '@mui/icons-material/PhoneRounded';
 import SnackbarAlert from '@/components/SnackbarAlert';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -33,6 +38,15 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (!fullName.trim() || !firstName.trim() || !lastName.trim() || !email.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Please fill in all required fields.',
+        severity: 'error',
+      });
+      return;
+    }
 
     if (password.length < 8) {
       setSnackbar({
@@ -55,21 +69,32 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-        },
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phoneNumber: phoneNumber.trim(),
+          email: email.trim(),
+          password,
+        }),
       });
 
-      if (signUpError) {
-        setSnackbar({ open: true, message: signUpError.message, severity: 'error' });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSnackbar({
+          open: true,
+          message: data.message || data.error || 'Registration failed. Please try again.',
+          severity: 'error',
+        });
         return;
       }
 
-      setSuccess(true);
+      // On success, redirect to confirm-signup with username
+      router.push(`/confirm-signup?username=${encodeURIComponent(email.trim())}`);
     } catch {
       setSnackbar({
         open: true,
@@ -79,25 +104,6 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (success) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 2 }}>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 600, mb: 2 }}>
-          Check Your Email
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-          We&apos;ve sent a confirmation link to <strong>{email}</strong>. Please check your
-          inbox and click the link to activate your account.
-        </Typography>
-        <Box sx={{ mt: 3 }}>
-          <Link href="/login" underline="hover" variant="body2">
-            Back to Sign In
-          </Link>
-        </Box>
-      </Box>
-    );
   }
 
   return (
@@ -121,6 +127,53 @@ export default function RegisterPage() {
       </Box>
 
       <TextField
+        id="fullName"
+        label="Full Name"
+        type="text"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        required
+        fullWidth
+        placeholder="John Doe"
+        margin="normal"
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <PersonOutline sx={{ color: 'action.active' }} />
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
+
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <TextField
+          id="firstName"
+          label="First Name"
+          type="text"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+          fullWidth
+          placeholder="John"
+          margin="normal"
+        />
+
+        <TextField
+          id="lastName"
+          label="Last Name"
+          type="text"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          required
+          fullWidth
+          placeholder="Doe"
+          margin="normal"
+        />
+      </Box>
+
+      <TextField
         id="email"
         label="Email"
         type="email"
@@ -135,6 +188,26 @@ export default function RegisterPage() {
             startAdornment: (
               <InputAdornment position="start">
                 <EmailRounded sx={{ color: 'action.active' }} />
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
+
+      <TextField
+        id="phoneNumber"
+        label="Phone"
+        type="tel"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        fullWidth
+        placeholder="+1 (555) 123-4567"
+        margin="normal"
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneRounded sx={{ color: 'action.active' }} />
               </InputAdornment>
             ),
           },

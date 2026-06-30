@@ -21,7 +21,7 @@ export default function SnackbarAlert({
       open={open}
       autoHideDuration={4000}
       onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
     >
       <Alert
         onClose={onClose}

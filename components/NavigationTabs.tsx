@@ -9,6 +9,7 @@ import Tab from '@mui/material/Tab';
 const TABS = [
   { label: 'Overview', value: '/overview' },
   { label: 'Inventory', value: '/inventory' },
+  { label: 'Analytics', value: '/analytics' },
   { label: 'Users', value: '/users' },
   { label: 'Donations', value: '/donations' },
   { label: 'CSV Upload', value: '/csv-upload' },

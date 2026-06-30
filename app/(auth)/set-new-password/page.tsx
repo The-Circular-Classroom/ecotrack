@@ -10,28 +10,29 @@ import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Link from '@mui/material/Link';
-import LockResetRounded from '@mui/icons-material/LockResetRounded';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import LockRounded from '@mui/icons-material/LockRounded';
 import SnackbarAlert from '@/components/SnackbarAlert';
 
-export default function ResetPasswordPage() {
+export default function SetNewPasswordPage() {
   return (
     <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
-      <ResetPasswordContent />
+      <SetNewPasswordContent />
     </Suspense>
   );
 }
 
-function ResetPasswordContent() {
+function SetNewPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const username = searchParams.get('username') || '';
 
-  const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const session = searchParams.get('session') ?? '';
+  const username = searchParams.get('username') ?? '';
+
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -43,25 +44,16 @@ function ResetPasswordContent() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if (!code.trim()) {
+    if (!password || !confirmPassword) {
       setSnackbar({
         open: true,
-        message: 'Please enter the verification code.',
+        message: 'Please fill in both password fields.',
         severity: 'error',
       });
       return;
     }
 
-    if (newPassword.length < 8) {
-      setSnackbar({
-        open: true,
-        message: 'Password must be at least 8 characters long.',
-        severity: 'error',
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
+    if (password !== confirmPassword) {
       setSnackbar({
         open: true,
         message: 'Passwords do not match.',
@@ -70,25 +62,30 @@ function ResetPasswordContent() {
       return;
     }
 
+    if (password.length < 8) {
+      setSnackbar({
+        open: true,
+        message: 'Password must be at least 8 characters long.',
+        severity: 'error',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const res = await fetch('/api/auth/set-new-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username,
-          code: code.trim(),
-          newPassword,
-        }),
+        body: JSON.stringify({ session, username, password, confirmPassword }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
+      if (!res.ok) {
         setSnackbar({
           open: true,
-          message: data.message || data.error || 'Password reset failed. Please try again.',
+          message: data.error || 'Failed to set new password. Please try again.',
           severity: 'error',
         });
         return;
@@ -96,13 +93,12 @@ function ResetPasswordContent() {
 
       setSnackbar({
         open: true,
-        message: 'Password reset successful! Redirecting to login...',
+        message: 'Password set successfully! Redirecting...',
         severity: 'success',
       });
 
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+      router.push('/overview');
+      router.refresh();
     } catch {
       setSnackbar({
         open: true,
@@ -121,60 +117,42 @@ function ResetPasswordContent() {
         component="h2"
         sx={{ fontWeight: 600, textAlign: 'center', mb: 1 }}
       >
-        Reset Password
+        Set New Password
       </Typography>
 
       <Typography
         variant="body2"
-        color="text.secondary"
-        sx={{ textAlign: 'center', mb: 3 }}
+        sx={{ color: 'text.secondary', textAlign: 'center', mb: 3 }}
       >
-        Enter the verification code sent to your email and choose a new password.
+        Your account requires a password change. Please set a new password to continue.
       </Typography>
 
       <TextField
-        id="code"
-        label="Verification Code"
-        type="text"
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
+        id="password"
+        label="New Password"
+        type={showPassword ? 'text' : 'password'}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         required
         fullWidth
-        placeholder="Enter your verification code"
+        placeholder="••••••••"
         margin="normal"
         slotProps={{
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <LockResetRounded sx={{ color: 'action.active' }} />
+                <LockRounded sx={{ color: 'action.active' }} />
               </InputAdornment>
             ),
-          },
-        }}
-      />
-
-      <TextField
-        id="newPassword"
-        label="New Password"
-        type={showNewPassword ? 'text' : 'password'}
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-        required
-        fullWidth
-        placeholder="Minimum 8 characters"
-        margin="normal"
-        helperText="Must be at least 8 characters"
-        slotProps={{
-          input: {
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  aria-label={showNewPassword ? 'Hide password' : 'Show password'}
-                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   edge="end"
                   size="small"
                 >
-                  {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               </InputAdornment>
             ),
@@ -183,17 +161,22 @@ function ResetPasswordContent() {
       />
 
       <TextField
-        id="confirmPassword"
+        id="confirm-password"
         label="Confirm Password"
         type={showConfirmPassword ? 'text' : 'password'}
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
         required
         fullWidth
-        placeholder="Repeat your new password"
+        placeholder="••••••••"
         margin="normal"
         slotProps={{
           input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockRounded sx={{ color: 'action.active' }} />
+              </InputAdornment>
+            ),
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
@@ -214,7 +197,7 @@ function ResetPasswordContent() {
         type="submit"
         variant="contained"
         fullWidth
-        disabled={loading}
+        disabled={loading || !password || !confirmPassword}
         sx={{
           mt: 3,
           mb: 2,
@@ -224,7 +207,7 @@ function ResetPasswordContent() {
           '&:hover': { backgroundColor: '#5a9a48' },
         }}
       >
-        {loading ? <CircularProgress size={24} color="inherit" /> : 'Reset Password'}
+        {loading ? <CircularProgress size={24} color="inherit" /> : 'Set Password'}
       </Button>
 
       <Box sx={{ textAlign: 'center', mt: 1.5 }}>

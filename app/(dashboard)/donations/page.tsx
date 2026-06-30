@@ -6,6 +6,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
@@ -17,12 +18,16 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Tooltip from '@mui/material/Tooltip';
 import AddRounded from '@mui/icons-material/AddRounded';
+import EditRounded from '@mui/icons-material/EditRounded';
+import DeleteRounded from '@mui/icons-material/DeleteRounded';
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import SchoolRounded from '@mui/icons-material/SchoolRounded';
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
 import PersonRounded from '@mui/icons-material/PersonRounded';
 import SnackbarAlert from '@/components/SnackbarAlert';
+import StyledConfirmDialog from '@/components/StyledConfirmDialog';
 
 // Types
 interface DonationDrive {
@@ -126,6 +131,22 @@ export default function DonationsPage() {
     location: '',
   });
 
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editDrive, setEditDrive] = useState<DonationDrive | null>(null);
+  const [editForm, setEditForm] = useState({
+    driveName: '',
+    startDate: '',
+    endDate: '',
+    location: '',
+  });
+
+  // Delete dialog state
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteDrive, setDeleteDrive] = useState<DonationDrive | null>(null);
+
   // Fetch drives
   const fetchDrives = useCallback(async () => {
     setLoading(true);
@@ -216,6 +237,93 @@ export default function DonationsPage() {
       setSnackbar({ open: true, message, severity: 'error' });
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  // Open edit dialog
+  const handleEditOpen = (drive: DonationDrive) => {
+    setEditDrive(drive);
+    setEditForm({
+      driveName: drive.driveName,
+      startDate: drive.startDate.split('T')[0],
+      endDate: drive.endDate.split('T')[0],
+      location: drive.location,
+    });
+    setEditOpen(true);
+  };
+
+  // Edit drive
+  const handleEdit = async () => {
+    if (!editDrive) return;
+    if (!editForm.driveName || !editForm.startDate || !editForm.endDate || !editForm.location) {
+      setSnackbar({ open: true, message: 'All fields are required', severity: 'warning' });
+      return;
+    }
+
+    if (new Date(editForm.startDate) > new Date(editForm.endDate)) {
+      setSnackbar({ open: true, message: 'Start date must be before end date', severity: 'warning' });
+      return;
+    }
+
+    setEditLoading(true);
+    try {
+      const res = await fetch(`/api/donations/drives/${editDrive.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          driveName: editForm.driveName,
+          startDate: editForm.startDate,
+          endDate: editForm.endDate,
+          location: editForm.location,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to update donation drive');
+      }
+
+      setSnackbar({ open: true, message: 'Donation drive updated successfully', severity: 'success' });
+      setEditOpen(false);
+      setEditDrive(null);
+      fetchDrives();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update donation drive';
+      setSnackbar({ open: true, message, severity: 'error' });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // Open delete dialog
+  const handleDeleteOpen = (drive: DonationDrive) => {
+    setDeleteDrive(drive);
+    setDeleteOpen(true);
+  };
+
+  // Delete drive
+  const handleDelete = async () => {
+    if (!deleteDrive) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/donations/drives/${deleteDrive.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to delete donation drive');
+      }
+
+      setSnackbar({ open: true, message: 'Donation drive deleted successfully', severity: 'success' });
+      setDeleteOpen(false);
+      setDeleteDrive(null);
+      fetchDrives();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete donation drive';
+      setSnackbar({ open: true, message, severity: 'error' });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -332,12 +440,33 @@ export default function DonationsPage() {
                     <Typography variant="h6" fontWeight={600} sx={{ flex: 1, mr: 1 }}>
                       {drive.driveName}
                     </Typography>
-                    <Chip
-                      label={getStatusLabel(status)}
-                      size="small"
-                      color={getStatusColor(status)}
-                      variant="filled"
-                    />
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <Chip
+                        label={getStatusLabel(status)}
+                        size="small"
+                        color={getStatusColor(status)}
+                        variant="filled"
+                      />
+                      <Tooltip title="Edit">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditOpen(drive)}
+                          aria-label={`Edit ${drive.driveName}`}
+                        >
+                          <EditRounded fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteOpen(drive)}
+                          aria-label={`Delete ${drive.driveName}`}
+                        >
+                          <DeleteRounded fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </Box>
 
                   {/* Details */}
@@ -457,6 +586,81 @@ export default function DonationsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Edit Drive Dialog */}
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit Donation Drive</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} mt={1}>
+            <TextField
+              label="Drive Name"
+              required
+              fullWidth
+              value={editForm.driveName}
+              onChange={(e) => setEditForm((f) => ({ ...f, driveName: e.target.value }))}
+              placeholder="e.g., Spring Clothing Drive 2025"
+            />
+            <TextField
+              label="Start Date"
+              type="date"
+              required
+              fullWidth
+              value={editForm.startDate}
+              onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              label="End Date"
+              type="date"
+              required
+              fullWidth
+              value={editForm.endDate}
+              onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              label="Location"
+              required
+              fullWidth
+              value={editForm.location}
+              onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+              placeholder="e.g., Main Hall, Building A"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={editLoading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleEdit}
+            disabled={editLoading}
+            startIcon={editLoading ? <CircularProgress size={16} /> : undefined}
+          >
+            {editLoading ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <StyledConfirmDialog
+        open={deleteOpen}
+        title="Delete Donation Drive"
+        message={`Are you sure you want to delete "${deleteDrive?.driveName}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onClose={() => {
+          setDeleteOpen(false);
+          setDeleteDrive(null);
+        }}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
+      />
 
       <SnackbarAlert
         open={snackbar.open}

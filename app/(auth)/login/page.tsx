@@ -34,13 +34,30 @@ export default function LoginPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
         setSnackbar({ open: true, message: signInError.message, severity: 'error' });
+        return;
+      }
+
+      // Check if MFA is required (AAL1 session with enrolled factors)
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const totpFactors = factorsData?.totp ?? [];
+
+      if (totpFactors.length > 0) {
+        // MFA is enrolled — redirect to MFA verification page
+        const factorId = totpFactors[0].id;
+        const sessionId = data.session?.access_token ?? '';
+        const params = new URLSearchParams({
+          session: sessionId,
+          username: email,
+          factorId,
+        });
+        router.push(`/mfa?${params.toString()}`);
         return;
       }
 
@@ -135,7 +152,7 @@ export default function LoginPage() {
       </Button>
 
       <Box sx={{ textAlign: 'center', mt: 1 }}>
-        <Link href="/reset-password" underline="hover" variant="body2">
+        <Link href="/forgot-password" underline="hover" variant="body2">
           Forgot your password?
         </Link>
       </Box>
