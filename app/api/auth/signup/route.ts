@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       // Handle Supabase-specific errors
+      console.error('Supabase Auth signup error:', error)
       if (
         error.message?.includes('already registered') ||
         error.message?.includes('already been registered')
