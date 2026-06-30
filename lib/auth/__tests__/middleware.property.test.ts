@@ -181,7 +181,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
     vi.clearAllMocks()
     // Set env vars that middleware expects
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-anon-key'
   })
 
   it('SHALL allow access to public paths without authentication', async () => {

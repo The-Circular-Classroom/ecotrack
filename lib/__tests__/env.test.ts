@@ -2,8 +2,8 @@
  * Property 22: Environment variable startup validation
  * Feature: aws-to-vercel-supabase-migration, Property 22: Environment variable startup validation
  *
- * For any required environment variable (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
- * SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL) that is missing from the environment, the application
+ * For any required environment variable (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+ * SUPABASE_SECRET_KEY, POSTGRES_PRISMA_URL) that is missing from the environment, the application
  * startup validation SHALL fail with an error message naming the missing variable.
  *
  * **Validates: Requirements 12.2**
@@ -13,9 +13,9 @@ import * as fc from 'fast-check'
 
 const REQUIRED_ENV_VARS = [
   'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'DATABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+  'SUPABASE_SECRET_KEY',
+  'POSTGRES_PRISMA_URL',
 ] as const
 
 /**
@@ -38,9 +38,9 @@ function validateEnv(env: Record<string, string | undefined>) {
   }
   return {
     NEXT_PUBLIC_SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL!,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY!,
-    DATABASE_URL: env.DATABASE_URL!,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    SUPABASE_SECRET_KEY: env.SUPABASE_SECRET_KEY!,
+    POSTGRES_PRISMA_URL: env.POSTGRES_PRISMA_URL!,
   }
 }
 
@@ -120,9 +120,9 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 22: Environment va
           // Validation should NOT throw when all vars are present with non-empty values
           const result = validateEnv(env)
           expect(result.NEXT_PUBLIC_SUPABASE_URL).toBe(values[0])
-          expect(result.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBe(values[1])
-          expect(result.SUPABASE_SERVICE_ROLE_KEY).toBe(values[2])
-          expect(result.DATABASE_URL).toBe(values[3])
+          expect(result.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).toBe(values[1])
+          expect(result.SUPABASE_SECRET_KEY).toBe(values[2])
+          expect(result.POSTGRES_PRISMA_URL).toBe(values[3])
         }
       ),
       { numRuns: 100 }
@@ -168,9 +168,9 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 22: Environment va
   it('should fail validation when importing the actual module with missing env vars', async () => {
     // Remove a required env var
     delete process.env.NEXT_PUBLIC_SUPABASE_URL
-    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY
-    delete process.env.DATABASE_URL
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    delete process.env.SUPABASE_SECRET_KEY
+    delete process.env.POSTGRES_PRISMA_URL
 
     // Dynamically importing the module should throw because validateEnv()
     // runs at module evaluation time
@@ -181,15 +181,15 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 22: Environment va
 
   it('should succeed validation when importing the actual module with all env vars present', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
-    process.env.DATABASE_URL = 'postgresql://user:pass@localhost:6543/db'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-anon-key'
+    process.env.SUPABASE_SECRET_KEY = 'test-service-role-key'
+    process.env.POSTGRES_PRISMA_URL = 'postgresql://user:pass@localhost:6543/db'
 
     const mod = await import('../env')
     expect(mod.env).toBeDefined()
     expect(mod.env.NEXT_PUBLIC_SUPABASE_URL).toBe('https://test.supabase.co')
-    expect(mod.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBe('test-anon-key')
-    expect(mod.env.SUPABASE_SERVICE_ROLE_KEY).toBe('test-service-role-key')
-    expect(mod.env.DATABASE_URL).toBe('postgresql://user:pass@localhost:6543/db')
+    expect(mod.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).toBe('test-anon-key')
+    expect(mod.env.SUPABASE_SECRET_KEY).toBe('test-service-role-key')
+    expect(mod.env.POSTGRES_PRISMA_URL).toBe('postgresql://user:pass@localhost:6543/db')
   })
 })

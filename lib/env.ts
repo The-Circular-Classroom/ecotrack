@@ -9,18 +9,18 @@
 
 const REQUIRED_ENV_VARS = [
   'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'DATABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+  'SUPABASE_SECRET_KEY',
+  'POSTGRES_PRISMA_URL',
 ] as const
 
 type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number]
 
 export interface ValidatedEnv {
   NEXT_PUBLIC_SUPABASE_URL: string
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: string
-  SUPABASE_SERVICE_ROLE_KEY: string
-  DATABASE_URL: string
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: string
+  SUPABASE_SECRET_KEY: string
+  POSTGRES_PRISMA_URL: string
 }
 
 /** Returns true if we are in the Next.js build phase (not runtime) */
@@ -33,9 +33,9 @@ export function validateEnv(): ValidatedEnv {
   if (isBuildPhase()) {
     return {
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-      DATABASE_URL: process.env.DATABASE_URL ?? '',
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
+      SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? '',
+      POSTGRES_PRISMA_URL: process.env.POSTGRES_PRISMA_URL ?? '',
     }
   }
 
@@ -55,9 +55,9 @@ export function validateEnv(): ValidatedEnv {
 
   return {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    DATABASE_URL: process.env.DATABASE_URL!,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY!,
+    POSTGRES_PRISMA_URL: process.env.POSTGRES_PRISMA_URL!,
   }
 }
 
