@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma/client'
 
 /**
  * GET /api/auth/callback
@@ -41,6 +42,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL('/login?error=auth_callback_failed', origin)
     )
+  }
+
+  // Ensure Prisma user record exists after OAuth or email confirmation callback
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await prisma.user.upsert({
+        where: { supabaseAuthId: user.id },
+        update: {
+          // Sync email in case it changed (e.g., email_change confirmation)
+          email: user.email!.toLowerCase(),
+        },
+        create: {
+          supabaseAuthId: user.id,
+          email: user.email!.toLowerCase(),
+          firstName: user.user_metadata?.first_name || null,
+          lastName: user.user_metadata?.last_name || null,
+          fullName: user.user_metadata?.full_name || null,
+          phoneNumber: user.user_metadata?.phone_number || null,
+          role: 'Parent',
+        },
+      })
+    }
+  } catch (prismaError) {
+    // Log but don't fail the callback — the user is authenticated in Supabase
+    console.error('Prisma user upsert after callback failed:', prismaError)
   }
 
   return NextResponse.redirect(new URL(next, origin))

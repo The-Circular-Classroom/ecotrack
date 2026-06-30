@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma/client'
 
 /**
  * POST /api/auth/verify-user-update
@@ -66,6 +67,22 @@ export async function POST(request: NextRequest) {
         { error: 'invalid_code', message: 'Invalid or expired verification code' },
         { status: 400 }
       )
+    }
+
+    // Sync the new email to Prisma after successful email change verification
+    try {
+      // After verifyOtp for email_change, Supabase updates the user's email.
+      // Fetch the updated user to get the new email.
+      const { data: { user: updatedUser } } = await supabase.auth.getUser()
+      if (updatedUser?.email) {
+        await prisma.user.update({
+          where: { supabaseAuthId: updatedUser.id },
+          data: { email: updatedUser.email.toLowerCase() },
+        })
+      }
+    } catch (prismaError) {
+      // Log but don't fail — the email is already changed in Supabase
+      console.error('Prisma email sync after email change failed:', prismaError)
     }
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/prisma/client'
 import {
   validatePassword,
   validateEmail,
@@ -110,6 +111,31 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
         app_metadata: { role: 'Parent' },
       })
+
+      // Create Prisma user record to keep Supabase Auth and Prisma in sync
+      try {
+        await prisma.user.upsert({
+          where: { supabaseAuthId: data.user.id },
+          update: {},
+          create: {
+            supabaseAuthId: data.user.id,
+            email: email.toLowerCase(),
+            firstName: firstName || null,
+            lastName: lastName || null,
+            fullName: fullName || null,
+            phoneNumber: phoneNumber || null,
+            role: 'Parent',
+          },
+        })
+      } catch (prismaError) {
+        // Rollback: delete the Supabase user if Prisma creation fails
+        await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+        console.error('Prisma user creation failed, rolled back Supabase user:', prismaError)
+        return NextResponse.json(
+          { error: 'registration_failed', message: 'Registration failed' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json(

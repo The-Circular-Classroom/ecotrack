@@ -10,6 +10,15 @@ const PUBLIC_PATHS = [
   '/api/auth/register',
   '/api/auth/reset-password',
   '/api/auth/callback',
+  '/api/auth/signup',
+  '/api/auth/forgot-password',
+  '/api/auth/confirm-signup',
+  '/api/auth/set-new-password',
+  '/api/auth/verify-mfa',
+  '/forgot-password',
+  '/mfa',
+  '/set-new-password',
+  '/confirm-signup',
 ]
 
 export async function proxy(request: NextRequest) {
