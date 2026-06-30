@@ -10,7 +10,7 @@
  * category, yearly trends, drive participation, repurposing material by colour.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@/lib/prisma/generated/client/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

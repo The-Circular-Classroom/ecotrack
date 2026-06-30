@@ -6,7 +6,7 @@
  * (getDonationBreakdown, getDonationDriveVolume patterns).
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@/lib/prisma/generated/client/client'
 
 // ─── Filter Types ─────────────────────────────────────────────────────────────
 

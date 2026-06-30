@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { UserRole } from '@prisma/client'
+import { UserRole } from '@/lib/prisma/generated/client/client'
 
 /**
  * POST /api/users/sync - Sync Supabase Auth users to database.

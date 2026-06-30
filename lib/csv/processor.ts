@@ -11,7 +11,7 @@
  * Email notification to the approver is handled by the calling route, not this function.
  */
 
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@/lib/prisma/generated/client/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ParsedRow } from './parser'
 

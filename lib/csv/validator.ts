@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@/lib/prisma/generated/client/client'
 import type { ParsedRow } from './parser'
 
 export interface ValidationError {

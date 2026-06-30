@@ -5,7 +5,7 @@
  * Uses Prisma $transaction for atomicity and validates that balances never go below zero.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@/lib/prisma/generated/client/client'
 import type { ItemStatus } from './transactions'
 
 export type StorageLocation = 'School' | 'TCC' | 'Exited'

@@ -6,7 +6,7 @@
  * quantities while never exceeding what available stock supports (Property 20).
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@/lib/prisma/generated/client/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
