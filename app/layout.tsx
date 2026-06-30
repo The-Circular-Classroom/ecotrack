@@ -1,5 +1,13 @@
 import '@/lib/env'
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import Providers from '@/components/Providers'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: 'EcoTrack',
@@ -13,8 +21,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-        {children}
+      <body className={inter.variable}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

@@ -1,39 +1,59 @@
+'use client';
+
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+
 export default function AuthLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#f9fafb',
-        padding: '1rem',
+        padding: 2,
       }}
     >
-      <div
-        style={{
+      <Paper
+        elevation={4}
+        sx={{
           width: '100%',
-          maxWidth: '400px',
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
-          padding: '2rem',
+          maxWidth: 440,
+          borderRadius: 3,
+          overflow: 'hidden',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 700 }}>
-            EcoTrack
-          </h1>
-          <p style={{ fontSize: '0.875rem', margin: '0.25rem 0 0', color: '#6b7280' }}>
-            The Circular Classroom
-          </p>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
+        <Box
+          sx={{
+            height: 6,
+            background: 'linear-gradient(90deg, #69aa56 0%, #213c2d 100%)',
+          }}
+        />
+        <Box sx={{ padding: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography
+              variant="h5"
+              component="h1"
+              sx={{ fontWeight: 700, color: '#213c2d' }}
+            >
+              EcoTrack
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: 'text.secondary', mt: 0.5 }}
+            >
+              The Circular Classroom
+            </Typography>
+          </Box>
+          {children}
+        </Box>
+      </Paper>
+    </Box>
+  );
 }

@@ -156,9 +156,9 @@ describe('Auth Flow Integration: register → confirm → login → access prote
       })
 
       expect(error).toBeNull()
-      expect(data.session.access_token).toBeDefined()
-      expect(data.session.refresh_token).toBeDefined()
-      expect(data.user.app_metadata.role).toBe('Parent')
+      expect(data.session!.access_token).toBeDefined()
+      expect(data.session!.refresh_token).toBeDefined()
+      expect(data.user!.app_metadata.role).toBe('Parent')
     })
 
     it('returns generic error on invalid credentials without leaking info', async () => {
@@ -310,7 +310,7 @@ describe('Auth Flow Integration: register → confirm → login → access prote
         email,
         password,
       })
-      expect(loginResult.data.session.access_token).toBe('jwt-token-for-alice')
+      expect(loginResult.data.session!.access_token).toBe('jwt-token-for-alice')
 
       // 5. Access control: middleware validates JWT
       const { data: { user } } = await supabase.auth.getUser()

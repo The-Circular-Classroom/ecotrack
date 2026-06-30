@@ -90,7 +90,7 @@ vi.mock('next/server', () => {
   }
 })
 
-import { middleware } from '@/middleware'
+import { proxy } from '@/proxy'
 import { NextRequest } from 'next/server'
 
 /** The public paths that should be accessible without auth */
@@ -189,7 +189,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
       fc.asyncProperty(publicPathArb, async (path) => {
         setupNoAuth()
         const request = new NextRequest(`${BASE_URL}${path}`)
-        const response = await middleware(request)
+        const response = await proxy(request)
 
         // Public paths should return a "next" response (pass through)
         expect((response as any)._type).toBe('next')
@@ -203,7 +203,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
       fc.asyncProperty(protectedApiPathArb, async (path) => {
         setupNoAuth()
         const request = new NextRequest(`${BASE_URL}${path}`)
-        const response = await middleware(request)
+        const response = await proxy(request)
 
         // Protected API paths with no auth should get 401
         expect((response as any)._type).toBe('json')
@@ -219,7 +219,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
       fc.asyncProperty(protectedPagePathArb, async (path) => {
         setupNoAuth()
         const request = new NextRequest(`${BASE_URL}${path}`)
-        const response = await middleware(request)
+        const response = await proxy(request)
 
         // Protected page paths with no auth should redirect to /login
         expect((response as any)._type).toBe('redirect')
@@ -251,7 +251,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
           })
 
           const request = new NextRequest(`${BASE_URL}${path}`)
-          const response = await middleware(request)
+          const response = await proxy(request)
 
           expect((response as any)._type).toBe('json')
           expect(response.status).toBe(401)
@@ -272,7 +272,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
         async (path, role) => {
           setupValidAuth(role)
           const request = new NextRequest(`${BASE_URL}${path}`)
-          const response = await middleware(request)
+          const response = await proxy(request)
 
           // Valid auth should forward the request (type = 'next')
           expect((response as any)._type).toBe('next')
@@ -290,7 +290,7 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
       fc.asyncProperty(publicPathArb, async (path) => {
         setupNoAuth()
         const request = new NextRequest(`${BASE_URL}${path}`)
-        await middleware(request)
+        await proxy(request)
 
         // For public paths, the middleware should short-circuit before calling getUser
         expect(mockGetUser).not.toHaveBeenCalled()
