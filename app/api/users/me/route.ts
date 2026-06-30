@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma/client'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * GET /api/users/me - Get current user profile with school association.
@@ -7,14 +8,19 @@ import { prisma } from '@/lib/prisma/client'
  * Requirements: 2.8, 3.1
  */
 export async function GET(request: NextRequest) {
+  const logger = createApiLogger('GET /api/users/me');
   const userId = request.headers.get('x-user-id')
+  logger.info('Request received', { userId });
+
   if (!userId) {
+    logger.warn('Unauthorized: missing x-user-id header');
     return NextResponse.json(
       { error: 'unauthorized', message: 'Authentication required' },
       { status: 401 }
     )
   }
 
+  logger.debug('Querying Prisma for user');
   const user = await prisma.user.findUnique({
     where: { supabaseAuthId: userId },
     include: {
@@ -25,12 +31,14 @@ export async function GET(request: NextRequest) {
   })
 
   if (!user) {
+    logger.warn('User not found', { userId });
     return NextResponse.json(
       { error: 'not_found', message: 'User not found' },
       { status: 404 }
     )
   }
 
+  logger.info('Response sent', { status: 200, userId });
   return NextResponse.json({
     id: user.id,
     email: user.email,

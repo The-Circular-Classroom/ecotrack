@@ -7,6 +7,7 @@ import {
   validateEmail,
   validateProfileFields,
 } from '@/lib/auth/validation'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * POST /api/auth/signup
@@ -22,12 +23,15 @@ import {
  *               3.1 (new endpoint added alongside existing ones)
  */
 export async function POST(request: NextRequest) {
+  const logger = createApiLogger('POST /api/auth/signup');
   try {
     const body = await request.json()
     const { fullName, firstName, lastName, phoneNumber, email, password } = body
+    logger.info('Request received', { email, hasPassword: !!password, hasFirstName: !!firstName });
 
     // Validate required fields
     if (!email || !password) {
+      logger.warn('Validation failed: missing required fields', { hasEmail: !!email, hasPassword: !!password });
       return NextResponse.json(
         { error: 'validation_error', message: 'Email and password are required' },
         { status: 400 }
@@ -36,6 +40,7 @@ export async function POST(request: NextRequest) {
 
     const emailError = validateEmail(email)
     if (emailError) {
+      logger.warn('Validation failed: invalid email', { reason: emailError.message });
       return NextResponse.json(
         { error: 'validation_error', message: emailError.message },
         { status: 400 }
@@ -44,6 +49,7 @@ export async function POST(request: NextRequest) {
 
     const passwordError = validatePassword(password)
     if (passwordError) {
+      logger.warn('Validation failed: invalid password', { reason: passwordError.message });
       return NextResponse.json(
         { error: 'validation_error', message: passwordError.message },
         { status: 400 }
@@ -58,6 +64,7 @@ export async function POST(request: NextRequest) {
       phoneNumber,
     })
     if (profileErrors.length > 0) {
+      logger.warn('Validation failed: invalid profile fields', { reason: profileErrors[0].message });
       return NextResponse.json(
         {
           error: 'validation_error',
@@ -68,13 +75,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    logger.debug('Validation passed');
+
     // Check if email already exists using the admin client
+    logger.debug('Checking if email exists');
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
     const emailExists = existingUsers?.users?.some(
       (u) => u.email?.toLowerCase() === email.toLowerCase()
     )
 
     if (emailExists) {
+      logger.warn('Email already exists', { email });
       return NextResponse.json(
         { error: 'email_unavailable', message: 'Email is unavailable' },
         { status: 409 }
@@ -82,6 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user with Supabase Auth, storing profile fields in user_metadata
+    logger.debug('Calling Supabase auth.signUp');
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -98,8 +110,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      // Handle Supabase-specific errors
-      console.error('Supabase Auth signup error:', error)
+      logger.error('Supabase signUp failed', { error: error.message });
       if (
         error.message?.includes('already registered') ||
         error.message?.includes('already been registered')
@@ -115,9 +126,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    logger.info('Supabase signUp succeeded', { userId: data.user?.id });
+
     // Create Prisma user record to keep Supabase Auth and Prisma in sync
     if (data.user) {
       try {
+        logger.debug('Creating Prisma user record');
         await prisma.user.upsert({
           where: { supabaseAuthId: data.user.id },
           update: {},
@@ -131,10 +145,11 @@ export async function POST(request: NextRequest) {
             role: 'Parent',
           },
         })
+        logger.info('Prisma user created', { userId: data.user.id });
       } catch (prismaError) {
         // Rollback: delete the Supabase user if Prisma creation fails
+        logger.error('Prisma user creation failed, rolling back Supabase user', { error: prismaError instanceof Error ? prismaError.message : String(prismaError) });
         await supabaseAdmin.auth.admin.deleteUser(data.user.id)
-        console.error('Prisma user creation failed, rolled back Supabase user:', prismaError)
         return NextResponse.json(
           { error: 'registration_failed', message: 'Registration failed' },
           { status: 500 }
@@ -142,6 +157,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    logger.info('Response sent', { status: 201 });
     return NextResponse.json(
       {
         success: true,
@@ -150,7 +166,8 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch {
+  } catch (err) {
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'internal_error', message: 'An unexpected error occurred' },
       { status: 500 }

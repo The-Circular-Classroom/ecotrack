@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * POST /api/auth/login
@@ -10,11 +11,14 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
  * Requirements: 2.2 (login returning tokens), 2.9 (generic error message)
  */
 export async function POST(request: NextRequest) {
+  const logger = createApiLogger('POST /api/auth/login');
   try {
     const body = await request.json()
     const { email, password } = body
+    logger.info('Request received', { email, hasPassword: !!password });
 
     if (!email || !password) {
+      logger.warn('Validation failed: missing required fields', { hasEmail: !!email, hasPassword: !!password });
       return NextResponse.json(
         {
           error: 'validation_error',
@@ -24,6 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    logger.debug('Calling Supabase signInWithPassword');
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -31,6 +36,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
+      logger.warn('Authentication failed', { email, error: error.message });
       // Generic error message to avoid leaking whether email or password is wrong
       // Requirement 2.9
       return NextResponse.json(
@@ -39,6 +45,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    logger.info('Authentication succeeded', { userId: data.user.id, email });
+    logger.info('Response sent', { status: 200 });
     return NextResponse.json({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
@@ -49,7 +57,8 @@ export async function POST(request: NextRequest) {
         role: data.user.app_metadata?.role || 'Parent',
       },
     })
-  } catch {
+  } catch (err) {
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'internal_error', message: 'An unexpected error occurred' },
       { status: 500 }

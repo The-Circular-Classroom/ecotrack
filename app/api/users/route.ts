@@ -3,6 +3,7 @@ import { requireRole, isValidRole } from '@/lib/auth/roles'
 import { clampPageSize } from '@/lib/pagination'
 import { prisma } from '@/lib/prisma/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * GET /api/users - List users with pagination and optional email filter.
@@ -10,8 +11,12 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
  * Requirements: 4.2, 3.4, 3.5
  */
 export async function GET(request: NextRequest) {
+  const logger = createApiLogger('GET /api/users');
   const role = request.headers.get('x-user-role')
+  logger.info('Request received', { role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
@@ -23,11 +28,13 @@ export async function GET(request: NextRequest) {
   const rawPageSize = parseInt(searchParams.get('pageSize') || '', 10)
   const pageSize = clampPageSize(isNaN(rawPageSize) ? null : rawPageSize)
   const email = searchParams.get('email') || undefined
+  logger.debug('Query params', { page, pageSize, email });
 
   const where = email
     ? { email: { contains: email, mode: 'insensitive' as const } }
     : {}
 
+  logger.debug('Querying Prisma for users');
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -38,6 +45,7 @@ export async function GET(request: NextRequest) {
     prisma.user.count({ where }),
   ])
 
+  logger.info('Response sent', { status: 200, total, page, pageSize });
   return NextResponse.json({
     users,
     pagination: {
@@ -55,8 +63,12 @@ export async function GET(request: NextRequest) {
  * Requirements: 4.1, 4.7, 3.4, 3.5
  */
 export async function POST(request: NextRequest) {
+  const logger = createApiLogger('POST /api/users');
   const role = request.headers.get('x-user-role')
+  logger.info('Request received', { role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
@@ -67,6 +79,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json()
   } catch {
+    logger.warn('Invalid JSON body');
     return NextResponse.json(
       { error: 'invalid_body', message: 'Invalid JSON body' },
       { status: 400 }
@@ -74,8 +87,10 @@ export async function POST(request: NextRequest) {
   }
 
   const { email, role: userRole, schoolId, firstName, lastName } = body
+  logger.debug('Create user request', { email, userRole, schoolId });
 
   if (!email) {
+    logger.warn('Validation failed: missing email');
     return NextResponse.json(
       { error: 'missing_field', message: 'Email is required' },
       { status: 400 }
@@ -83,6 +98,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!userRole) {
+    logger.warn('Validation failed: missing role');
     return NextResponse.json(
       { error: 'missing_field', message: 'Role is required' },
       { status: 400 }
@@ -91,6 +107,7 @@ export async function POST(request: NextRequest) {
 
   // Validate role value (Requirement 3.7)
   if (!isValidRole(userRole)) {
+    logger.warn('Validation failed: invalid role', { userRole });
     return NextResponse.json(
       {
         error: 'invalid_role',
@@ -100,10 +117,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  logger.debug('Validation passed');
+
   // Generate a temporary password (minimum 12 characters)
   const tempPassword = generateTempPassword()
 
   // Create user in Supabase Auth
+  logger.debug('Creating user in Supabase Auth', { email });
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -118,19 +138,24 @@ export async function POST(request: NextRequest) {
 
   if (authError) {
     if (authError.message?.toLowerCase().includes('already') || authError.status === 422) {
+      logger.warn('Duplicate email in Supabase', { email });
       return NextResponse.json(
         { error: 'duplicate_email', message: 'Email is already in use' },
         { status: 409 }
       )
     }
+    logger.error('Supabase createUser failed', { error: authError.message });
     return NextResponse.json(
       { error: 'auth_error', message: 'Failed to create user in auth system' },
       { status: 500 }
     )
   }
 
+  logger.info('Supabase user created', { userId: authUser.user.id, email });
+
   // Create corresponding DB record
   try {
+    logger.debug('Creating Prisma user record');
     const user = await prisma.user.create({
       data: {
         supabaseAuthId: authUser.user.id,
@@ -144,9 +169,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    logger.info('Response sent', { status: 201, userId: user.id });
     return NextResponse.json({ user }, { status: 201 })
   } catch (dbError: unknown) {
     // Roll back auth user creation on DB failure
+    logger.error('Prisma user creation failed, rolling back Supabase user', { error: (dbError as Error).message });
     await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
 
     const error = dbError as { code?: string }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, isValidRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * POST /api/users/create - Create a new user with role and school assignment.
@@ -9,8 +10,12 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
  * Requirements: 2.8, 3.1, 3.5
  */
 export async function POST(request: NextRequest) {
+  const logger = createApiLogger('POST /api/users/create');
   const role = request.headers.get('x-user-role')
+  logger.info('Request received', { role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
@@ -28,6 +33,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json()
   } catch {
+    logger.warn('Invalid JSON body');
     return NextResponse.json(
       { error: 'invalid_body', message: 'Invalid JSON body' },
       { status: 400 }
@@ -35,8 +41,10 @@ export async function POST(request: NextRequest) {
   }
 
   const { firstName, lastName, email, phone, assignedRole, schoolId } = body
+  logger.debug('Create user request', { email, assignedRole, schoolId });
 
   if (!email) {
+    logger.warn('Validation failed: missing email');
     return NextResponse.json(
       { error: 'missing_field', message: 'Email is required' },
       { status: 400 }
@@ -44,6 +52,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!assignedRole) {
+    logger.warn('Validation failed: missing assignedRole');
     return NextResponse.json(
       { error: 'missing_field', message: 'Assigned role is required' },
       { status: 400 }
@@ -51,6 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isValidRole(assignedRole)) {
+    logger.warn('Validation failed: invalid role', { assignedRole });
     return NextResponse.json(
       {
         error: 'invalid_role',
@@ -60,10 +70,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  logger.debug('Validation passed');
+
   // Generate a temporary password (minimum 12 characters)
   const tempPassword = generateTempPassword()
 
   // Create user in Supabase Auth
+  logger.debug('Creating user in Supabase Auth', { email });
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -79,19 +92,24 @@ export async function POST(request: NextRequest) {
 
   if (authError) {
     if (authError.message?.toLowerCase().includes('already') || authError.status === 422) {
+      logger.warn('Duplicate email in Supabase', { email });
       return NextResponse.json(
         { error: 'duplicate_email', message: 'Email is already in use' },
         { status: 409 }
       )
     }
+    logger.error('Supabase createUser failed', { error: authError.message });
     return NextResponse.json(
       { error: 'auth_error', message: 'Failed to create user in auth system' },
       { status: 500 }
     )
   }
 
+  logger.info('Supabase user created', { userId: authUser.user.id, email });
+
   // Create corresponding DB record
   try {
+    logger.debug('Creating Prisma user record');
     const user = await prisma.user.create({
       data: {
         supabaseAuthId: authUser.user.id,
@@ -105,6 +123,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    logger.info('Response sent', { status: 201, userId: user.id });
     return NextResponse.json(
       {
         success: true,
@@ -123,6 +142,7 @@ export async function POST(request: NextRequest) {
     )
   } catch (dbError: unknown) {
     // Roll back auth user creation on DB failure
+    logger.error('Prisma user creation failed, rolling back Supabase user', { error: (dbError as Error).message });
     await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
 
     const error = dbError as { code?: string }

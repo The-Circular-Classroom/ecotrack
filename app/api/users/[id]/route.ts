@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, isValidRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createApiLogger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -13,31 +14,39 @@ interface RouteParams {
  * Requirements: 4.3, 3.4, 3.5
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const logger = createApiLogger('GET /api/users/[id]');
   const role = request.headers.get('x-user-role')
+  const { id } = await params
+  logger.info('Request received', { id, role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
     )
   }
 
-  const { id } = await params
   const userId = parseInt(id, 10)
   if (isNaN(userId)) {
+    logger.warn('Invalid user ID', { id });
     return NextResponse.json(
       { error: 'invalid_id', message: 'User ID must be a valid integer' },
       { status: 400 }
     )
   }
 
+  logger.debug('Querying Prisma for user', { userId });
   const user = await prisma.user.findUnique({ where: { id: userId } })
   if (!user) {
+    logger.warn('User not found', { userId });
     return NextResponse.json(
       { error: 'not_found', message: 'User not found' },
       { status: 404 }
     )
   }
 
+  logger.info('Response sent', { status: 200, userId });
   return NextResponse.json({ user })
 }
 
@@ -47,17 +56,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * Requirements: 4.3, 4.8, 3.4, 3.5, 3.7
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const logger = createApiLogger('PATCH /api/users/[id]');
   const role = request.headers.get('x-user-role')
+  const { id } = await params
+  logger.info('Request received', { id, role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
     )
   }
 
-  const { id } = await params
   const userId = parseInt(id, 10)
   if (isNaN(userId)) {
+    logger.warn('Invalid user ID', { id });
     return NextResponse.json(
       { error: 'invalid_id', message: 'User ID must be a valid integer' },
       { status: 400 }
@@ -75,14 +89,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     body = await request.json()
   } catch {
+    logger.warn('Invalid JSON body');
     return NextResponse.json(
       { error: 'invalid_body', message: 'Invalid JSON body' },
       { status: 400 }
     )
   }
 
+  logger.debug('Update fields', { hasRole: !!body.role, hasSchoolId: body.schoolId !== undefined, hasFirstName: !!body.firstName });
+
   // Validate role if provided (Requirement 3.7)
   if (body.role !== undefined && !isValidRole(body.role)) {
+    logger.warn('Invalid role value', { role: body.role });
     return NextResponse.json(
       {
         error: 'invalid_role',
@@ -93,8 +111,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   // Find existing user
+  logger.debug('Looking up existing user', { userId });
   const existingUser = await prisma.user.findUnique({ where: { id: userId } })
   if (!existingUser) {
+    logger.warn('User not found', { userId });
     return NextResponse.json(
       { error: 'not_found', message: 'User not found' },
       { status: 404 }
@@ -135,29 +155,36 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (Object.keys(authMetaUpdate).length > 0) authUpdate.user_metadata = authMetaUpdate
     if (Object.keys(authAppMetaUpdate).length > 0) authUpdate.app_metadata = authAppMetaUpdate
 
+    logger.debug('Updating Supabase Auth user', { supabaseAuthId: existingUser.supabaseAuthId });
     const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       existingUser.supabaseAuthId,
       authUpdate
     )
 
     if (authError) {
+      logger.error('Supabase Auth update failed', { error: authError.message, userId });
       return NextResponse.json(
         { error: 'auth_error', message: 'Failed to update user in auth system' },
         { status: 500 }
       )
     }
+    logger.debug('Supabase Auth update succeeded');
   }
 
   // Update DB record
   try {
+    logger.debug('Updating Prisma user record', { userId });
     const user = await prisma.user.update({
       where: { id: userId },
       data: dbUpdate,
     })
 
+    logger.info('User updated successfully', { userId });
+    logger.info('Response sent', { status: 200 });
     return NextResponse.json({ user })
   } catch (dbError: unknown) {
     // Rollback Supabase Auth changes if DB update fails (Requirement 3.7)
+    logger.error('Prisma update failed, rolling back Supabase changes', { error: (dbError as Error).message, userId });
     if (Object.keys(authMetaUpdate).length > 0 || Object.keys(authAppMetaUpdate).length > 0) {
       const rollbackUpdate: Record<string, unknown> = {}
       if (Object.keys(authMetaUpdate).length > 0) {
@@ -170,6 +197,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         existingUser.supabaseAuthId,
         rollbackUpdate
       )
+      logger.debug('Supabase rollback completed');
     }
 
     const error = dbError as { code?: string }
@@ -192,17 +220,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  * Requirements: 4.5, 4.8, 3.4, 3.5
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const logger = createApiLogger('DELETE /api/users/[id]');
   const role = request.headers.get('x-user-role')
+  const { id } = await params
+  logger.info('Request received', { id, role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
     )
   }
 
-  const { id } = await params
   const userId = parseInt(id, 10)
   if (isNaN(userId)) {
+    logger.warn('Invalid user ID', { id });
     return NextResponse.json(
       { error: 'invalid_id', message: 'User ID must be a valid integer' },
       { status: 400 }
@@ -210,8 +243,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   // Find existing user
+  logger.debug('Looking up existing user', { userId });
   const existingUser = await prisma.user.findUnique({ where: { id: userId } })
   if (!existingUser) {
+    logger.warn('User not found', { userId });
     return NextResponse.json(
       { error: 'not_found', message: 'User not found' },
       { status: 404 }
@@ -219,22 +254,30 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   // Delete from Supabase Auth
+  logger.debug('Deleting user from Supabase Auth', { supabaseAuthId: existingUser.supabaseAuthId });
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
     existingUser.supabaseAuthId
   )
 
   if (authError) {
+    logger.error('Supabase Auth delete failed', { error: authError.message, userId });
     return NextResponse.json(
       { error: 'auth_error', message: 'Failed to delete user from auth system' },
       { status: 500 }
     )
   }
 
+  logger.debug('Supabase Auth user deleted');
+
   // Delete from DB
   try {
+    logger.debug('Deleting Prisma user record', { userId });
     await prisma.user.delete({ where: { id: userId } })
+    logger.info('User deleted successfully', { userId });
+    logger.info('Response sent', { status: 200 });
     return NextResponse.json({ message: 'User deleted successfully' })
   } catch (dbError: unknown) {
+    logger.error('Prisma delete failed', { error: (dbError as Error).message, userId });
     const error = dbError as { code?: string }
     if (error.code === 'P2025') {
       return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * GET /api/users/list - Paginated user list with optional username/email filter.
@@ -8,8 +9,12 @@ import { prisma } from '@/lib/prisma/client'
  * Requirements: 2.8, 3.1
  */
 export async function GET(request: NextRequest) {
+  const logger = createApiLogger('GET /api/users/list');
   const role = request.headers.get('x-user-role')
+  logger.info('Request received', { role });
+
   if (!requireRole(role, 'Admin')) {
+    logger.warn('Forbidden: insufficient role', { role });
     return NextResponse.json(
       { error: 'forbidden', message: 'Admin access required' },
       { status: 403 }
@@ -20,6 +25,7 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10', 10) || 10))
   const username = searchParams.get('username') || ''
+  logger.debug('Query params', { page, limit, username });
 
   const skip = (page - 1) * limit
   const take = limit
@@ -36,6 +42,7 @@ export async function GET(request: NextRequest) {
       }
     : {}
 
+  logger.debug('Querying Prisma for users');
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -65,6 +72,7 @@ export async function GET(request: NextRequest) {
     createdAt: user.createdDate,
   }))
 
+  logger.info('Response sent', { status: 200, total, page, limit, resultCount: data.length });
   return NextResponse.json({
     data,
     total,

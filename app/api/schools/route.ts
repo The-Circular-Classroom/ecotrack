@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma/client'
+import { createApiLogger } from '@/lib/logger'
 
 /**
  * GET /api/schools - Fetch all schools ordered by name.
@@ -8,7 +9,11 @@ import { prisma } from '@/lib/prisma/client'
  * Requirements: 2.8, 3.1
  */
 export async function GET() {
+  const logger = createApiLogger('GET /api/schools');
   try {
+    logger.info('Request received');
+    logger.debug('Querying Prisma for schools');
+
     const schools = await prisma.school.findMany({
       orderBy: { schoolName: 'asc' },
     })
@@ -23,8 +28,10 @@ export async function GET() {
       isCooperating: school.isCooperating,
     }))
 
+    logger.info('Response sent', { status: 200, count: data.length });
     return NextResponse.json({ data })
-  } catch {
+  } catch (err) {
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'database_error', message: 'Failed to fetch schools' },
       { status: 500 }
