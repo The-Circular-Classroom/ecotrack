@@ -75,12 +75,23 @@ export async function proxy(request: NextRequest) {
       process.env.SUPABASE_SECRET_KEY!,
       { auth: { persistSession: false } }
     )
-    const { data: dbUser } = await adminClient
+    const { data: dbUser, error: dbError } = await adminClient
       .from('users')
       .select('role')
       .eq('supabase_auth_id', user.id)
       .single()
-    if (dbUser?.role) {
+
+    if (dbError) {
+      console.error('[proxy] Role lookup failed:', JSON.stringify({
+        userId: user.id,
+        error: dbError.message,
+        code: dbError.code,
+        details: dbError.details,
+        hint: dbError.hint,
+      }))
+      // Fallback to app_metadata
+      role = user.app_metadata?.role || 'Parent'
+    } else if (dbUser?.role) {
       // DB stores enum values like 'admin', 'school_staff', 'parent', 'psg_volunteer'
       // Map them to the application role names
       const roleMap: Record<string, string> = {
@@ -89,9 +100,14 @@ export async function proxy(request: NextRequest) {
         parent: 'Parent',
         psg_volunteer: 'PsgVolunteer',
       }
-      role = roleMap[dbUser.role] || 'Parent'
+      role = roleMap[dbUser.role] || dbUser.role
+      console.log('[proxy] Role resolved:', JSON.stringify({ userId: user.id, dbRole: dbUser.role, mappedRole: role }))
+    } else {
+      console.warn('[proxy] No role found in DB for user:', user.id)
+      role = user.app_metadata?.role || 'Parent'
     }
-  } catch {
+  } catch (err) {
+    console.error('[proxy] Role lookup exception:', err instanceof Error ? err.message : String(err))
     // Fallback to app_metadata if DB lookup fails
     role = user.app_metadata?.role || 'Parent'
   }
