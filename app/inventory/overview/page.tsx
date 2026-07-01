@@ -94,11 +94,8 @@ export default function InventoryOverviewPage() {
   const fetchSchools = useCallback(async () => {
     try {
       setLoading(true);
-      const accessToken = sessionStorage.getItem("accessToken");
 
-      const response = await fetch(`${inventoryApiUrl}/api/inventory/balances`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(`${inventoryApiUrl}/api/inventory/balances`);
       if (!response.ok) throw new Error("Failed to fetch inventory data");
 
       const result = await response.json();
@@ -143,15 +140,13 @@ export default function InventoryOverviewPage() {
     async (schoolId) => {
       try {
         setDataLoading(true);
-        const token = sessionStorage.getItem("accessToken");
 
         const [overviewRaw, byItemRaw] = await Promise.all([
-          fetchSchoolCollectionOverview(analyticsApiUrl, schoolId, { token }),
+          fetchSchoolCollectionOverview(analyticsApiUrl, schoolId),
           fetchSchoolInventoryByItem(
             analyticsApiUrl,
             schoolId,
             { isAdmin },
-            { token },
           ),
         ]);
 

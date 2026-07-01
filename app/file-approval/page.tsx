@@ -429,11 +429,7 @@ export default function FileApprovalPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/csv/validate`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
-        },
-      });
+      const response = await fetch(`${apiUrl}/api/csv/validate`);
       const json = await response.json();
       if (!response.ok) {
         throw new Error(json.message || json.error || 'Failed to load files');
@@ -506,12 +502,7 @@ export default function FileApprovalPage() {
     try {
       const encodedKey = encodeURIComponent(key);
       const response = await fetch(
-        `${apiUrl}/api/csv/validate?key=${encodedKey}`,
-        {
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
-          },
-        }
+        `${apiUrl}/api/csv/validate?key=${encodedKey}`
       );
       const json = await response.json();
       if (!response.ok) {
@@ -548,7 +539,6 @@ export default function FileApprovalPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify({ key: file.key }),
       });
@@ -576,7 +566,6 @@ export default function FileApprovalPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify({ key: file.key }),
       });

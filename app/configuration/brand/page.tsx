@@ -195,11 +195,7 @@ export default function BrandPage() {
   const fetchBrands = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/inventory/brands`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-        },
-      });
+      const res = await fetch(`${API_URL}/api/inventory/brands`);
       if (!res.ok) throw new Error("Failed to fetch brands");
       const result = await res.json();
       const sorted = (result.data || []).sort((a, b) =>
@@ -226,9 +222,6 @@ export default function BrandPage() {
     try {
       const res = await fetch(`${API_URL}/api/inventory/brands/${deleteBrand.id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-        },
       });
       const result = await res.json();
       setSnackbar({

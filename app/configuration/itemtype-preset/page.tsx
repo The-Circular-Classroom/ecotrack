@@ -196,13 +196,7 @@ export default function PresetPage() {
             setLoading(true);
 
             const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/inventory/item-types`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
-                    },
-                }
-            );
+            const response = await fetch(`${apiUrl}/api/inventory/item-types`);
 
             if (!response.ok) throw new Error('Failed to fetch item preset');
 
@@ -238,9 +232,6 @@ export default function PresetPage() {
             const apiUrl = '';
             const response = await fetch(`${apiUrl}/api/inventory/item-types/${deleteRow.item_type_id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
-                },
             });
 
             const result = await response.json();

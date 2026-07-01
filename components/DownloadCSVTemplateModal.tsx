@@ -62,7 +62,6 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
-  const token = () => sessionStorage.getItem("accessToken");
   const selectedSchoolOption = useMemo(
     () =>
       schools.find((school) => String(school.id) === String(selectedSchoolId)) ||
@@ -90,14 +89,9 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
   const fetchSchools = async () => {
     setLoadingInit(true);
     try {
-      const accessToken = token();
       const [analyticsRes, inventoryRes] = await Promise.all([
-        fetch(`/api/schools`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }),
-        fetch(`${apiUrl}/api/inventory/balances`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }),
+        fetch(`/api/schools`),
+        fetch(`${apiUrl}/api/inventory/balances`),
       ]);
 
       const [analyticsJson, inventoryJson] = await Promise.all([
@@ -158,11 +152,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
   const fetchUserSchool = async () => {
     setLoadingInit(true);
     try {
-      const res = await fetch(`${apiAuthUrl}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token()}`,
-        },
-      });
+      const res = await fetch(`${apiAuthUrl}/api/users/me`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to fetch profile");
 
@@ -182,12 +172,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
         const analyticsApiUrl =
           '';
         const schoolRes = await fetch(
-          `${analyticsApiUrl}/api/school/${schoolIdFromProfile}/profile`,
-          {
-            headers: {
-              Authorization: `Bearer ${token()}`,
-            },
-          }
+          `${analyticsApiUrl}/api/school/${schoolIdFromProfile}/profile`
         );
         const schoolJson = await schoolRes.json().catch(() => ({}));
 
@@ -226,10 +211,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
     setLoadingDrives(true);
     try {
       const res = await fetch(
-        `${apiUrl}/api/donations/drives/school/${schoolId}`,
-        {
-          headers: { Authorization: `Bearer ${token()}` },
-        }
+        `${apiUrl}/api/donations/drives/school/${schoolId}`
       );
       const json = await res.json();
       if (!res.ok)
@@ -252,10 +234,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
   const downloadForLocation = async (loc) => {
     const driveId = selectedDriveId;
     const res = await fetch(
-      `${apiUrl}/api/donations/drives/${driveId}/csv-template?location=${loc}`,
-      {
-        headers: { Authorization: `Bearer ${token()}` },
-      }
+      `${apiUrl}/api/donations/drives/${driveId}/csv-template?location=${loc}`
     );
 
     if (!res.ok) {

@@ -336,25 +336,11 @@ export default function SchoolAnalyticsPage() {
   const [profileError, setProfileError] = useState(null);
 
   const needsSessionSchool = !isAdmin && role !== 'UNKNOWN';
-  const accessTokenForProfile =
-    typeof window !== 'undefined' ? sessionStorage.getItem('accessToken') : null;
-  const missingAccessToken =
-    needsSessionSchool && typeof window !== 'undefined' && !accessTokenForProfile;
-  const sessionExpiredMessage =
-    'Your session has expired. Please sign in again to view your school analytics.';
-  const effectiveProfileError = missingAccessToken ? sessionExpiredMessage : profileError;
 
   useEffect(() => {
-    const accessToken = sessionStorage.getItem('accessToken');
     if (isAdmin || role === 'UNKNOWN') return;
 
-    if (!accessToken) {
-      return;
-    }
-
-    fetch(`${authApiUrl}/api/users/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    fetch(`${authApiUrl}/api/users/me`)
       .then((res) => res.json())
       .then((json) => {
         if (json?.schoolId) {
@@ -404,7 +390,6 @@ export default function SchoolAnalyticsPage() {
   // ── Data fetching ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (role === 'UNKNOWN') return;
-    if (!isAdmin && missingAccessToken) return;
     if (!isAdmin && profileLoading) return; // wait for session school resolution
     let cancelled = false;
 
@@ -414,38 +399,37 @@ export default function SchoolAnalyticsPage() {
         return;
       }
 
-      const token = sessionStorage.getItem('accessToken');
       const schoolId = effectiveSchoolId;
 
       if (!cancelled) { setLoading(true); setPartialErrors([]); }
 
       // Admin still needs inventoryCount to build the school selector options
       const requests = [
-        ...(isAdmin ? [['inventoryCount', fetchCollectionInventoryCount(analyticsApiUrl, { token })]] : []),
+        ...(isAdmin ? [['inventoryCount', fetchCollectionInventoryCount(analyticsApiUrl)]] : []),
       ];
 
       if (schoolId) {
         if (isAdmin) {
           requests.push(
-            ['monthlyTrends',     fetchCollectionMonthlyTrends(analyticsApiUrl, { year, schoolId }, { token })],
-            ['funnel',            fetchCollectionFunnel(analyticsApiUrl, { year, schoolId }, { token })],
-            ['donationBreakdown', fetchCollectionDonationBreakdown(analyticsApiUrl, { year, schoolId, startMonth, endMonth }, { token })],
-            ['drivePerformance',  fetchCollectionDrivePerformance(analyticsApiUrl, { year, schoolId, startMonth, endMonth }, { token })],
-            ['sustainability',    fetchCollectionSustainability(analyticsApiUrl, { year, schoolId }, { token })],
-            ['donationVolume',    fetchCollectionDonationVolume(analyticsApiUrl, { schoolId }, { token })],
+            ['monthlyTrends',     fetchCollectionMonthlyTrends(analyticsApiUrl, { year, schoolId })],
+            ['funnel',            fetchCollectionFunnel(analyticsApiUrl, { year, schoolId })],
+            ['donationBreakdown', fetchCollectionDonationBreakdown(analyticsApiUrl, { year, schoolId, startMonth, endMonth })],
+            ['drivePerformance',  fetchCollectionDrivePerformance(analyticsApiUrl, { year, schoolId, startMonth, endMonth })],
+            ['sustainability',    fetchCollectionSustainability(analyticsApiUrl, { year, schoolId })],
+            ['donationVolume',    fetchCollectionDonationVolume(analyticsApiUrl, { schoolId })],
           );
         }
 
         requests.push(
-          ['schoolProfile',     fetchSchoolProfile(analyticsApiUrl, schoolId, { token })],
-          ['schoolDrives',      fetchSchoolDrives(analyticsApiUrl, schoolId, { token })],
-          ['collectionOverview',fetchSchoolCollectionOverview(analyticsApiUrl, schoolId, { token })],
-          ['inventoryByItem',   fetchSchoolInventoryByItem(analyticsApiUrl, schoolId, { isAdmin }, { token })],
+          ['schoolProfile',     fetchSchoolProfile(analyticsApiUrl, schoolId)],
+          ['schoolDrives',      fetchSchoolDrives(analyticsApiUrl, schoolId)],
+          ['collectionOverview',fetchSchoolCollectionOverview(analyticsApiUrl, schoolId)],
+          ['inventoryByItem',   fetchSchoolInventoryByItem(analyticsApiUrl, schoolId, { isAdmin })],
         );
         if (isAdmin) {
           requests.push(
-            ['collaborations',  fetchSchoolCollaborations(analyticsApiUrl, schoolId, { token })],
-            ['productsCreated', fetchSchoolProductsCreated(analyticsApiUrl, schoolId, { token })],
+            ['collaborations',  fetchSchoolCollaborations(analyticsApiUrl, schoolId)],
+            ['productsCreated', fetchSchoolProductsCreated(analyticsApiUrl, schoolId)],
           );
         }
       }
@@ -477,7 +461,7 @@ export default function SchoolAnalyticsPage() {
 
     run();
     return () => { cancelled = true; };
-  }, [analyticsApiUrl, effectiveSchoolId, endMonth, isAdmin, missingAccessToken, profileLoading, role, startMonth, year]);
+  }, [analyticsApiUrl, effectiveSchoolId, endMonth, isAdmin, profileLoading, role, startMonth, year]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
@@ -590,18 +574,18 @@ export default function SchoolAnalyticsPage() {
 
   // ── Loading / error states ──────────────────────────────────────────────────
 
-  if (role === 'UNKNOWN' || (!isAdmin && profileLoading && !missingAccessToken)) {
+  if (role === 'UNKNOWN' || (!isAdmin && profileLoading)) {
     return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner /></div>;
   }
 
   // Non-admin with no school linked
-  if (!isAdmin && effectiveProfileError) {
+  if (!isAdmin && profileError) {
     return (
       <Box className="flex min-h-[60vh] items-center justify-center px-4">
         <Paper elevation={0} className="rounded-2xl border border-amber-200 bg-amber-50 p-10 text-center max-w-md">
           <LockOutlinedIcon sx={{ fontSize: 40, color: '#b45309', mb: 1 }} />
           <p className="text-base font-semibold text-amber-900">School not linked</p>
-          <p className="mt-2 text-sm text-amber-700">{effectiveProfileError}</p>
+          <p className="mt-2 text-sm text-amber-700">{profileError}</p>
         </Paper>
       </Box>
     );
@@ -611,10 +595,8 @@ export default function SchoolAnalyticsPage() {
 
   async function handleDownloadReport() {
     try {
-      const token = sessionStorage.getItem('accessToken');
       const res = await fetch(
-        `${analyticsApiUrl}/api/report/school/${effectiveSchoolId}?year=${year}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${analyticsApiUrl}/api/report/school/${effectiveSchoolId}?year=${year}`
       );
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();

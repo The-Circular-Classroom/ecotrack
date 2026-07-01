@@ -392,22 +392,14 @@ export default function DonationDrivePage() {
   // Determine role and resolve school ID / user ID from /api/users/me
   useEffect(() => {
     const role = getRoleFromSession();
-    const accessToken = sessionStorage.getItem('accessToken');
-    if (!accessToken) {
-      setError("You must be logged in to view this page.");
-      setProfileLoading(false);
-      router.push("/");
-      return;
-    }
     const admin = role === "TCC_ADMIN";
     if (admin) setIsAdmin(true);
 
-    const apiUrl = '';
-
-    fetch(`${apiUrl}/api/users/me`, {
-      headers: { Authorization: `Bearer ${token()}` },
-    })
-      .then((res) => res.json())
+    fetch('/api/users/me')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch profile');
+        return res.json();
+      })
       .then((json) => {
         if (json?.userId) setUserId(json.userId);
         if (!admin) {
@@ -440,25 +432,23 @@ export default function DonationDrivePage() {
       // Admins fetch all drives; non-admins fetch only their school's
       const url = isAdmin
         ? `${apiUrl}/api/donations/drives`
-        : `${apiUrl}/api/donations/drives/school/${schoolId}`;
+        : `${apiUrl}/api/donation-drive/school/${schoolId}`;
 
       if (!isAdmin && !schoolId) {
         setError("No school linked to your account.");
         return;
       }
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-        },
-      });
+      const response = await fetch(url);
 
       if (!response.ok) throw new Error("Failed to fetch donation drives");
 
       const result = await response.json();
 
-      const sortedData = (result.data || []).sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at),
+      // Admin response: { drives: [...] }, school response: { data: [...] }
+      const driveList = result.drives || result.data || [];
+      const sortedData = driveList.sort(
+        (a, b) => new Date(b.created_at || b.startDate) - new Date(a.created_at || a.startDate),
       );
 
       setDonationDrives(sortedData);
@@ -487,9 +477,6 @@ export default function DonationDrivePage() {
         `${apiUrl}/api/donations/drives/${deleteRow.id}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-          },
         },
       );
 

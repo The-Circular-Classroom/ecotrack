@@ -48,7 +48,6 @@ export default function UpdateItemCondition() {
   const [loading, setLoading] = useState(true);
   const [confirmChangesLoading, setConfirmChangesLoading] = useState(false);
   const [error, setError] = useState(null);
-  const token = () => sessionStorage.getItem("accessToken");
 
   // ── Determine role and resolve school ID from /api/users/me ─────────────────
   useEffect(() => {
@@ -57,9 +56,7 @@ export default function UpdateItemCondition() {
     if (admin) setIsAdmin(true);
 
     const apiUrl = '';
-    fetch(`${apiUrl}/api/users/me`, {
-      headers: { Authorization: `Bearer ${token()}` },
-    })
+    fetch(`${apiUrl}/api/users/me`)
       .then((res) => res.json())
       .then((json) => {
         if (!admin) {
@@ -87,11 +84,7 @@ export default function UpdateItemCondition() {
       setLoading(true);
       const apiUrl = '';
 
-      const response = await fetch(`${apiUrl}/api/inventory/balance`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-        },
-      });
+      const response = await fetch(`${apiUrl}/api/inventory/balance`);
 
       const result = await response.json().catch(() => ({}));
 
@@ -212,7 +205,6 @@ export default function UpdateItemCondition() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
             },
             body: JSON.stringify(txn),
           }).then(async (res) => {

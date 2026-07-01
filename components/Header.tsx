@@ -49,7 +49,10 @@ export default function Header() {
 
   const hideHeaderUI = useMemo(() => {
     if (!pathname) return false
-    return AUTH_ROUTES.some((p) => pathname.startsWith(p))
+    if (AUTH_ROUTES.some((p) => pathname.startsWith(p))) return true
+    // Show full header UI only on inventory and analytics pages
+    if (pathname.startsWith('/inventory') || pathname.startsWith('/analytics') || pathname.startsWith('/transaction') || pathname.startsWith('/update-item-condition') || pathname.startsWith('/file-approval') || pathname.startsWith('/donation-drives') || pathname.startsWith('/configuration') || pathname.startsWith('/school')) return false
+    return true
   }, [pathname])
 
   const currentApp = useMemo(() => {
@@ -130,13 +133,25 @@ export default function Header() {
             {/* Logo + Module Switcher */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                <Image
-                  src="/images/Logo-Symbol-green.png"
-                  alt="Logo"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                />
+                {!hideHeaderUI && role !== 'UNKNOWN' ? (
+                  <Link href="/">
+                    <Image
+                      src="/images/Logo-Symbol-green.png"
+                      alt="Logo"
+                      width={40}
+                      height={40}
+                      className="object-contain cursor-pointer"
+                    />
+                  </Link>
+                ) : (
+                  <Image
+                    src="/images/Logo-Symbol-green.png"
+                    alt="Logo"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
+                )}
               </div>
 
               {!hideHeaderUI && role !== 'UNKNOWN' && (

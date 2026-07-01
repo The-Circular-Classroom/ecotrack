@@ -32,16 +32,14 @@ function buildQuery(params) {
   return query.toString();
 }
 
-async function fetchJson(url, { token, signal } = {}) {
+async function fetchJson(url, { signal } = {}) {
   let cleanUrl = url;
   const apiIndex = url.indexOf('/api/');
   if (apiIndex !== -1) {
     cleanUrl = url.substring(apiIndex);
   }
 
-  const headers = {};
-
-  const response = await fetch(cleanUrl, { headers, signal });
+  const response = await fetch(cleanUrl, { signal });
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {

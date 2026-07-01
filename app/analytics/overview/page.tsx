@@ -480,26 +480,25 @@ export default function OverallAnalyticsPage() {
     let cancelled = false;
 
     async function run() {
-      const token = sessionStorage.getItem('accessToken');
       if (!cancelled) setLoadingSnapshot(true);
 
       const startYear = currentYear - YEARLY_TREND_WINDOW + 1;
-      fetchOverviewYearlyTrend(analyticsApiUrl, { startYear, endYear: currentYear }, { token })
+      fetchOverviewYearlyTrend(analyticsApiUrl, { startYear, endYear: currentYear })
         .then((data) => setYearlyTrendData(data))
         .catch(() => setYearlyTrendData({ years: [] }));
 
       const requests = [
-        ['inventoryCount',            fetchCollectionInventoryCount(analyticsApiUrl, { token })],
-        ['networkKPIs',               fetchOverviewKPITotals(analyticsApiUrl, { token })],
-        ['overviewBySchool',          fetchOverviewInventoryBySchool(analyticsApiUrl, { token })],
-        ['overviewByCategory',        fetchOverviewInventoryByCategory(analyticsApiUrl, { token })],
-        ['allTimeDriveParticipation', fetchOverviewDriveParticipation(analyticsApiUrl, {}, { token })],
-        ['repurposingByColour',       fetchOverviewRepurposingByColour(analyticsApiUrl, { token })],
-        ['productProjections',        fetchOverviewProductProjections(analyticsApiUrl, { token })],
+        ['inventoryCount',            fetchCollectionInventoryCount(analyticsApiUrl)],
+        ['networkKPIs',               fetchOverviewKPITotals(analyticsApiUrl)],
+        ['overviewBySchool',          fetchOverviewInventoryBySchool(analyticsApiUrl)],
+        ['overviewByCategory',        fetchOverviewInventoryByCategory(analyticsApiUrl)],
+        ['allTimeDriveParticipation', fetchOverviewDriveParticipation(analyticsApiUrl, {})],
+        ['repurposingByColour',       fetchOverviewRepurposingByColour(analyticsApiUrl)],
+        ['productProjections',        fetchOverviewProductProjections(analyticsApiUrl)],
       ];
 
       if (role === 'TCC_ADMIN') {
-        requests.push(['assemblyProducts', fetchAssemblyProducts(analyticsApiUrl, { token })]);
+        requests.push(['assemblyProducts', fetchAssemblyProducts(analyticsApiUrl)]);
       }
 
       const settled = await Promise.allSettled(requests.map(([, p]) => p));
@@ -533,21 +532,20 @@ export default function OverallAnalyticsPage() {
         if (!cancelled) setLoadingPeriod(false);
         return;
       }
-      const token = sessionStorage.getItem('accessToken');
       const schoolId = selectedSchoolId === 'all' ? '' : selectedSchoolId;
       if (!cancelled) setLoadingPeriod(true);
 
       const requests = [
-        ['schoolRankings',       fetchCollectionSchoolRankings(analyticsApiUrl, { year, metric: 'recovery' }, { token })],
-        ['activeDrives',         fetchCollectionActiveDrives(analyticsApiUrl, { schoolId }, { token })],
-        ['drivePerformance',     fetchCollectionDrivePerformance(analyticsApiUrl, { year, schoolId, startMonth, endMonth }, { token })],
-        ['donationBreakdown',    fetchCollectionDonationBreakdown(analyticsApiUrl, { year, schoolId, startMonth, endMonth }, { token })],
-        ['stockByLocation',      fetchCollectionStockByLocation(analyticsApiUrl, { schoolId }, { token })],
-        ['cooperationAnalytics', fetchCollectionCooperationAnalytics(analyticsApiUrl, { year }, { token })],
-        ['sustainability',       fetchCollectionSustainability(analyticsApiUrl, { year, schoolId }, { token })],
-        ['funnel',               fetchCollectionFunnel(analyticsApiUrl, { year, schoolId }, { token })],
-        ['monthlyTrends',        fetchCollectionMonthlyTrends(analyticsApiUrl, { year, schoolId }, { token })],
-        ['driveParticipation',   fetchOverviewDriveParticipation(analyticsApiUrl, { year }, { token })],
+        ['schoolRankings',       fetchCollectionSchoolRankings(analyticsApiUrl, { year, metric: 'recovery' })],
+        ['activeDrives',         fetchCollectionActiveDrives(analyticsApiUrl, { schoolId })],
+        ['drivePerformance',     fetchCollectionDrivePerformance(analyticsApiUrl, { year, schoolId, startMonth, endMonth })],
+        ['donationBreakdown',    fetchCollectionDonationBreakdown(analyticsApiUrl, { year, schoolId, startMonth, endMonth })],
+        ['stockByLocation',      fetchCollectionStockByLocation(analyticsApiUrl, { schoolId })],
+        ['cooperationAnalytics', fetchCollectionCooperationAnalytics(analyticsApiUrl, { year })],
+        ['sustainability',       fetchCollectionSustainability(analyticsApiUrl, { year, schoolId })],
+        ['funnel',               fetchCollectionFunnel(analyticsApiUrl, { year, schoolId })],
+        ['monthlyTrends',        fetchCollectionMonthlyTrends(analyticsApiUrl, { year, schoolId })],
+        ['driveParticipation',   fetchOverviewDriveParticipation(analyticsApiUrl, { year })],
       ];
 
       const settled = await Promise.allSettled(requests.map(([, p]) => p));
@@ -1246,10 +1244,8 @@ export default function OverallAnalyticsPage() {
 
   async function handleDownloadReport() {
     try {
-      const token = sessionStorage.getItem('accessToken');
       const res = await fetch(
-        `${analyticsApiUrl}/api/report/admin?year=${year}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${analyticsApiUrl}/api/report/admin?year=${year}`
       );
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
