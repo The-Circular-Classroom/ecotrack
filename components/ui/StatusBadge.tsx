@@ -1,45 +1,69 @@
-import Chip from '@mui/material/Chip';
+// @ts-nocheck
+import { Chip } from '@mui/material';
+import { getStatusLabel, getStatusColor } from '@/components/ui/theme';
 
-interface StatusBadgeProps {
-  status: 'active' | 'inactive' | string;
-  label?: string;
-}
+/**
+ * Standardised status badge using MUI Chip.
+ * Accepts either a raw enum value (e.g. "ForSale") or a display label ("For Sale").
+ */
 
-export default function StatusBadge({ status, label }: StatusBadgeProps) {
-  const displayLabel = label ?? status.charAt(0).toUpperCase() + status.slice(1);
+// Map display labels back to enum keys so both forms work
+const LABEL_TO_KEY = {
+  'General Office': 'GeneralOffice',
+  'For School': 'GeneralOffice',
+  'For Sale': 'ForSale',
+  'For PSG Activities': 'ForSale',
+  'Sold': 'Sold',
+  'Used by PSG': 'Sold',
+  'Donated': 'Donated',
+  'For Repurpose': 'ForRepurpose',
+  'For TCC Repurposing': 'ForRepurpose',
+  'Repurposed': 'Repurposed',
+  'Repurposed by TCC': 'Repurposed',
+  'Disposed': 'Disposed',
+  'Recycled/Disposed': 'Disposed',
+  // File approval statuses
+  'Approved': 'Approved',
+  'Pending': 'Pending',
+  'Failed': 'Failed',
+};
 
-  const chipProps = (() => {
-    switch (status) {
-      case 'active':
-        return {
-          sx: {
-            backgroundColor: '#e8f5e9',
-            color: '#2e7d32',
-            fontWeight: 500,
-          },
-        };
-      case 'inactive':
-        return {
-          sx: {
-            backgroundColor: '#f5f5f5',
-            color: '#757575',
-            fontWeight: 500,
-          },
-        };
-      default:
-        return {
-          sx: {
-            fontWeight: 500,
-          },
-        };
-    }
-  })();
+// Soft background styles per MUI color name
+const COLOR_SX = {
+  success: { bgcolor: '#f0fdf4', color: '#15803d', border: '1px solid #86efac' },
+  warning: { bgcolor: '#fffbeb', color: '#b45309', border: '1px solid #fcd34d' },
+  error:   { bgcolor: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5' },
+  info:    { bgcolor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' },
+  default: { bgcolor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' },
+};
+
+export default function StatusBadge({ status, size = 'small' }) {
+  if (!status) {
+    return (
+      <Chip
+        label="—"
+        size="small"
+        sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22, borderRadius: '6px', '& .MuiChip-label': { px: 1 }, ...COLOR_SX.default }}
+      />
+    );
+  }
+
+  const key = LABEL_TO_KEY[status] || status;
+  const colorName = getStatusColor(key);
+  const colorSx = COLOR_SX[colorName] || COLOR_SX.default;
 
   return (
     <Chip
-      label={displayLabel}
+      label={getStatusLabel(key)}
       size="small"
-      {...chipProps}
+      sx={{
+        fontWeight: 600,
+        fontSize: '0.7rem',
+        height: 22,
+        borderRadius: '6px',
+        '& .MuiChip-label': { px: 1 },
+        ...colorSx,
+      }}
     />
   );
 }

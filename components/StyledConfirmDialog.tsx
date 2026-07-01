@@ -1,74 +1,81 @@
-'use client';
+'use client'
 
-import { ReactNode } from 'react';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
+import React from 'react'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Button,
+  CircularProgress,
+} from '@mui/material'
+import { CONFIRM_DIALOG, BTN, MODAL } from '@/components/ui/theme'
 
-export interface StyledConfirmDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  message: ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  confirmColor?: 'error' | 'primary' | 'warning';
-  loading?: boolean;
+interface StyledConfirmDialogProps {
+  open: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title?: string
+  description: React.ReactNode
+  confirmLabel?: string
+  cancelLabel?: string
+  confirmColor?: 'danger' | 'primary'
+  loading?: boolean
 }
 
 export default function StyledConfirmDialog({
   open,
   onClose,
   onConfirm,
-  title,
-  message,
+  title = 'Confirm',
+  description,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
-  confirmColor = 'error',
+  confirmColor = 'danger',
   loading = false,
 }: StyledConfirmDialogProps) {
+  const confirmSx = confirmColor === 'danger' ? BTN.danger : BTN.primary
+
   return (
     <Dialog
       open={open}
       onClose={loading ? undefined : onClose}
-      maxWidth="xs"
-      fullWidth
+      PaperProps={{ sx: CONFIRM_DIALOG.paper }}
     >
-      <DialogTitle sx={{ pb: 0.5, fontWeight: 600 }}>{title}</DialogTitle>
+      <DialogTitle sx={{ pb: 0.5 }}>
+        <Typography sx={CONFIRM_DIALOG.title}>{title}</Typography>
+      </DialogTitle>
 
       <DialogContent sx={{ pt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          {message}
-        </Typography>
+        {typeof description === 'string' ? (
+          <Typography sx={CONFIRM_DIALOG.body}>{description}</Typography>
+        ) : (
+          description
+        )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+      <DialogActions sx={MODAL.actions}>
         <Button
           variant="outlined"
           onClick={onClose}
           disabled={loading}
           fullWidth
+          sx={BTN.cancel}
         >
           {cancelLabel}
         </Button>
         <Button
           variant="contained"
-          color={confirmColor}
           onClick={onConfirm}
           disabled={loading}
           fullWidth
-          startIcon={
-            loading ? <CircularProgress size={16} color="inherit" /> : undefined
-          }
+          sx={confirmSx}
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
           {loading ? `${confirmLabel}...` : confirmLabel}
         </Button>
       </DialogActions>
     </Dialog>
-  );
+  )
 }

@@ -1,110 +1,61 @@
-'use client';
+// @ts-nocheck
+export default function ColorCard({ color, onClick }) {
+  const totalQuantity = color.totalQuantity || 0;
+  const colorName = color.colorName || 'Unknown Color';
 
-import { ReactNode } from 'react';
-import Card from '@mui/material/Card';
-import CardActionArea from '@mui/material/CardActionArea';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import { useRouter } from 'next/navigation';
+  // Color mapping for common colors
+  const getColorClass = (colorName) => {
+    const colorMap = {
+      'blue': 'bg-blue-500',
+      'red': 'bg-red-500',
+      'green': 'bg-green-500',
+      'yellow': 'bg-yellow-500',
+      'purple': 'bg-purple-500',
+      'pink': 'bg-pink-500',
+      'orange': 'bg-orange-500',
+      'black': 'bg-black',
+      'white': 'bg-white border-2 border-gray-300',
+      'gray': 'bg-gray-500',
+      'grey': 'bg-gray-500',
+      'brown': 'bg-amber-700',
+      'navy': 'bg-blue-900',
+      'maroon': 'bg-red-900',
+      'teal': 'bg-teal-500',
+      'cyan': 'bg-cyan-500',
+    };
 
-export type ColorCardVariant = 'primary' | 'dark' | 'subtle' | 'gradient';
+    const normalizedColor = colorName.toLowerCase();
+    for (const [key, className] of Object.entries(colorMap)) {
+      if (normalizedColor.includes(key)) {
+        return className;
+      }
+    }
+    return 'bg-gray-400';
+  };
 
-interface ColorCardProps {
-  title: string;
-  description: string;
-  icon: ReactNode;
-  href: string;
-  variant?: ColorCardVariant;
-}
-
-const variantStyles: Record<ColorCardVariant, { background: string; color: string; iconColor: string }> = {
-  primary: {
-    background: '#69aa56',
-    color: '#ffffff',
-    iconColor: 'rgba(255, 255, 255, 0.85)',
-  },
-  dark: {
-    background: '#213c2d',
-    color: '#ffffff',
-    iconColor: '#b9ff9b',
-  },
-  subtle: {
-    background: 'linear-gradient(135deg, #f0fbe8 0%, #e3f5da 100%)',
-    color: '#213c2d',
-    iconColor: '#69aa56',
-  },
-  gradient: {
-    background: 'linear-gradient(135deg, #69aa56 0%, #213c2d 100%)',
-    color: '#ffffff',
-    iconColor: '#b9ff9b',
-  },
-};
-
-export default function ColorCard({
-  title,
-  description,
-  icon,
-  href,
-  variant = 'gradient',
-}: ColorCardProps) {
-  const router = useRouter();
-  const styles = variantStyles[variant];
+  const hex = color?.colorHex || color?.hexCode || color?.hex;
+  const isWhite = hex && ['#fff', '#ffffff', 'white'].includes(String(hex).toLowerCase());
 
   return (
-    <Card
-      elevation={2}
-      sx={{
-        borderRadius: 3,
-        overflow: 'hidden',
-        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
-        },
-      }}
+    <div
+      onClick={onClick}
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer hover:border-gray-200 p-4 flex items-center gap-4"
     >
-      <CardActionArea
-        onClick={() => router.push(href)}
-        aria-label={`Navigate to ${title}`}
-        sx={{
-          background: styles.background,
-          color: styles.color,
-          height: '100%',
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              mb: 1.5,
-            }}
-          >
-            <Box
-              sx={{
-                color: styles.iconColor,
-                display: 'flex',
-                alignItems: 'center',
-                fontSize: 36,
-                '& > svg': { fontSize: 'inherit' },
-              }}
-            >
-              {icon}
-            </Box>
-            <Typography variant="h6" fontWeight={700} color="inherit">
-              {title}
-            </Typography>
-          </Box>
-          <Typography
-            variant="body2"
-            sx={{ opacity: 0.85, color: 'inherit' }}
-          >
-            {description}
-          </Typography>
-        </CardContent>
-      </CardActionArea>
-    </Card>
+      {/* Color Swatch */}
+      <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden">
+        <div
+          className={`w-full h-full ${hex ? '' : getColorClass(colorName)}`}
+          style={hex ? { backgroundColor: hex, border: isWhite ? '1px solid rgb(209 213 219)' : undefined } : undefined}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-base text-gray-900 truncate mb-1">
+          {colorName}
+        </h3>
+        <p className="text-sm text-gray-500">{totalQuantity.toLocaleString()} items</p>
+      </div>
+    </div>
   );
 }

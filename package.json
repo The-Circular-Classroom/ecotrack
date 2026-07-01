@@ -5,16 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:push": "prisma db push",
-    "db:seed": "prisma db seed",
-    "postinstall": "prisma generate"
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:push": "npx prisma db push",
+    "db:seed": "npx prisma db seed",
+    "postinstall": "npx prisma generate"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

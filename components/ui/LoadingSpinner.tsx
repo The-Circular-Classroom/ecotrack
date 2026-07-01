@@ -1,29 +1,21 @@
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
+// @ts-nocheck
+import { Box, CircularProgress, Typography } from '@mui/material';
 
-interface LoadingSpinnerProps {
-  label?: string;
-}
-
-export default function LoadingSpinner({ label }: LoadingSpinnerProps) {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 6,
-        gap: 2,
-      }}
-    >
-      <CircularProgress color="primary" />
-      {label && (
-        <Typography variant="body2" color="text.secondary">
-          {label}
-        </Typography>
-      )}
-    </Box>
-  );
+export default function LoadingSpinner({ message = 'Loading...' }) {
+    return (
+        <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight={400}
+            p={4}
+        >
+            <Box textAlign="center">
+                <CircularProgress sx={{ color: 'var(--color-main)' }} />
+                <Typography mt={2} color="text.secondary">
+                    {message}
+                </Typography>
+            </Box>
+        </Box>
+    );
 }

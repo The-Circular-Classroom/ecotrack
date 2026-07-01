@@ -1,0 +1,595 @@
+'use client'
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { getRoleFromSession } from '@/utils/auth'
+import { groupCategoryName, byCategoryOrder, CATEGORY_DISPLAY_LABELS, getSubCategoryOrder } from '@/utils/categoryOrder'
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Box,
+  Typography,
+  SelectChangeEvent
+} from '@mui/material'
+
+import UniformOverviewCard from '@/components/UniformOverviewCard'
+import ColorCard from '@/components/ColorCard'
+import InventoryOverviewCard from '@/components/InventoryOverviewCard'
+import InventoryBreakdownCard from '@/components/InventoryBreakdownCard'
+import InventorySection from '@/components/InventorySection'
+import InventoryBalancePreviewModal from '@/components/InventoryBalancePreviewModal'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import CustomErrorButton from '@/components/ui/CustomErrorButton'
+import { parseApiResponse } from '@/utils/apiResponse'
+
+const toTitleCase = (str: string) => {
+  if (!str) return str
+  return str.replace(
+    /\w\S*/g,
+    (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+  )
+}
+
+function groupByCategoryGroup(rows: any[]) {
+  const groupMap = new Map<string, any>()
+
+  rows.forEach((row) => {
+    const category = row?.itemType?.category
+    const rawName = category?.categoryName || ''
+    const groupKey = groupCategoryName(rawName)
+
+    if (!groupMap.has(groupKey)) {
+      groupMap.set(groupKey, {
+        id: groupKey,
+        groupKey,
+        displayLabel: (CATEGORY_DISPLAY_LABELS as Record<string, string>)[groupKey] || rawName,
+        category: category,
+        rawNameSet: new Map<string, any>(),
+        schoolStock: 0,
+        psgActivities: 0,
+        forRepurposing: 0,
+        recyclingDisposal: 0,
+        items: [],
+        colors: new Map<string, any>(),
+      })
+    }
+
+    const entry = groupMap.get(groupKey)
+
+    if (!entry.rawNameSet.has(rawName)) {
+      entry.rawNameSet.set(rawName, { category, items: [] })
+    }
+    entry.rawNameSet.get(rawName).items.push(row)
+
+    if (row.itemStatus === 'GeneralOffice' && row.storedAt === 'School')
+      entry.schoolStock += row.quantity
+    if (row.itemStatus === 'ForSale' && row.storedAt === 'School')
+      entry.psgActivities += row.quantity
+    if (row.itemStatus === 'ForRepurpose' && row.storedAt === 'TCC')
+      entry.forRepurposing += row.quantity
+    if (row.itemStatus === 'Disposed' && row.storedAt === 'Exited')
+      entry.recyclingDisposal += row.quantity
+
+    entry.items.push(row)
+
+    const colorName = row?.itemType?.primaryColour?.colourName
+    const colorHex =
+      row?.itemType?.primaryColour?.hexcode ||
+      row?.itemType?.primaryColour?.hexCode ||
+      row?.itemType?.primaryColour?.colourHex ||
+      row?.itemType?.primaryColour?.hex
+
+    if (colorName && !entry.colors.has(colorName)) {
+      entry.colors.set(colorName, { colorName, colorHex })
+    }
+  })
+
+  return Array.from(groupMap.values()).map((g) => {
+    const subCategories = (Array.from(g.rawNameSet.entries()) as [string, any][])
+      .sort(([a], [b]) => getSubCategoryOrder(a) - getSubCategoryOrder(b))
+      .map(([rawName, sub]: [string, any]) => ({
+        rawName,
+        category: sub.category,
+        items: sub.items,
+        imageUrl: sub.items[0]?.itemType?.imageUrl || null,
+      }))
+
+    const isMulti = subCategories.length > 1
+
+    return {
+      ...g,
+      subCategories,
+      isMulti,
+      imageUrl: isMulti ? null : (subCategories[0]?.imageUrl || null),
+      totalQuantity:
+        g.schoolStock + g.psgActivities + g.forRepurposing + g.recyclingDisposal,
+      colorOptions: Array.from(g.colors.values()),
+      colorCount: g.colors.size,
+    }
+  })
+}
+
+function expandByGender(groupedCards: any[]) {
+  const result: any[] = []
+
+  groupedCards.forEach((card) => {
+    const hasF = card.items.some((r: any) => r.itemType?.gender === 'Female')
+    const hasM = card.items.some((r: any) => r.itemType?.gender === 'Male')
+
+    if (!hasF || !hasM) {
+      result.push(card)
+      return
+    }
+
+    const makeGenderCard = (gender: 'Female' | 'Male', suffix: string) => {
+      const filteredItems = card.items.filter((r: any) => r.itemType?.gender === gender)
+      const schoolStock = filteredItems.filter((r: any) => r.itemStatus === 'GeneralOffice' && r.storedAt === 'School').reduce((s: number, r: any) => s + (r.quantity || 0), 0)
+      const psgActivities = filteredItems.filter((r: any) => r.itemStatus === 'ForSale' && r.storedAt === 'School').reduce((s: number, r: any) => s + (r.quantity || 0), 0)
+      const forRepurposing = filteredItems.filter((r: any) => r.itemStatus === 'ForRepurpose' && r.storedAt === 'TCC').reduce((s: number, r: any) => s + (r.quantity || 0), 0)
+      const recyclingDisposal = filteredItems.filter((r: any) => r.itemStatus === 'Disposed' && r.storedAt === 'Exited').reduce((s: number, r: any) => s + (r.quantity || 0), 0)
+
+      const colorMap = new Map<string, any>()
+      filteredItems.forEach((r: any) => {
+        const colorName = r?.itemType?.primaryColour?.colourName
+        const colorHex = r?.itemType?.primaryColour?.hexcode || r?.itemType?.primaryColour?.hexCode ||
+          r?.itemType?.primaryColour?.colourHex || r?.itemType?.primaryColour?.hex
+        if (colorName && !colorMap.has(colorName)) colorMap.set(colorName, { colorName, colorHex })
+      })
+
+      const subRawMap = new Map<string, any>()
+      filteredItems.forEach((r: any) => {
+        const rawName = r?.itemType?.category?.categoryName || ''
+        if (!subRawMap.has(rawName)) subRawMap.set(rawName, { category: r?.itemType?.category, items: [] })
+        subRawMap.get(rawName).items.push(r)
+      })
+      const subCategories = (Array.from(subRawMap.entries()) as [string, any][])
+        .sort(([a], [b]) => getSubCategoryOrder(a) - getSubCategoryOrder(b))
+        .map(([rawName, sub]: [string, any]) => ({
+          rawName,
+          category: sub.category,
+          items: sub.items,
+          imageUrl: sub.items[0]?.itemType?.imageUrl || null,
+        }))
+      const isMulti = subCategories.length > 1
+
+      return {
+        ...card,
+        id: `${card.id}_${gender.toLowerCase()}`,
+        displayLabel: `${card.displayLabel} (${suffix})`,
+        items: filteredItems,
+        schoolStock,
+        psgActivities,
+        forRepurposing,
+        recyclingDisposal,
+        totalQuantity: schoolStock + psgActivities + forRepurposing + recyclingDisposal,
+        colorOptions: Array.from(colorMap.values()),
+        colorCount: colorMap.size,
+        colors: colorMap,
+        subCategories,
+        isMulti,
+        imageUrl: isMulti ? null : (subCategories[0]?.imageUrl || null),
+        _gender: gender,
+      }
+    }
+
+    result.push(makeGenderCard('Female', 'Female'))
+    result.push(makeGenderCard('Male', 'Male'))
+  })
+
+  return result
+}
+
+function buildColors(items: any[]) {
+  const colorMap = new Map<string, any>()
+
+  items.forEach((item) => {
+    const colorName = item?.itemType?.primaryColour?.colourName
+    if (!colorName) return
+
+    if (!colorMap.has(colorName)) {
+      colorMap.set(colorName, {
+        colorName,
+        colorHex:
+          item?.itemType?.primaryColour?.hexcode ||
+          item?.itemType?.primaryColour?.hexCode ||
+          item?.itemType?.primaryColour?.colourHex ||
+          item?.itemType?.primaryColour?.hex ||
+          null,
+        totalQuantity: 0,
+        items: [],
+      })
+    }
+
+    const colorData = colorMap.get(colorName)
+    colorData.totalQuantity += item.quantity
+    colorData.items.push(item)
+  })
+
+  return Array.from(colorMap.values())
+}
+
+export default function UniformOverviewPage() {
+  const [role, setRole] = useState('UNKNOWN')
+  const isAdmin = role === 'TCC_ADMIN'
+
+  const [rows, setRows] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
+  const [search, setSearch] = useState('')
+
+  const [viewLevel, setViewLevel] = useState<'cards' | 'colors' | 'items'>('cards')
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null)
+  const [colors, setColors] = useState<any[]>([])
+  const [selectedColor, setSelectedColor] = useState<any | null>(null)
+
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewItem, setPreviewItem] = useState<any | null>(null)
+
+  const isSingleColor = colors.length === 1
+
+  const openPreview = useCallback((item: any) => {
+    setPreviewItem(item)
+    setPreviewOpen(true)
+  }, [])
+
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false)
+    setPreviewItem(null)
+  }, [])
+
+  useEffect(() => {
+    setRole(getRoleFromSession())
+  }, [])
+
+  const fetchBalances = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/inventory/balance')
+      if (!response.ok) throw new Error('Failed to fetch inventory data')
+
+      const { payload } = await parseApiResponse(response)
+      setRows(payload.balances || [])
+      setError(null)
+    } catch (err: any) {
+      console.error('Error fetching uniform overview:', err)
+      setError(err.message || 'Error fetching uniform overview')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (role === 'UNKNOWN') return
+    fetchBalances()
+  }, [role, fetchBalances])
+
+  const schools = useMemo(() => {
+    const map = new Map<number, any>()
+    rows.forEach((row) => {
+      const school = row?.itemType?.school
+      if (school?.id && !map.has(school.id)) {
+        map.set(school.id, { id: school.id, schoolName: school.schoolName })
+      }
+    })
+    return Array.from(map.values()).sort((a, b) =>
+      String(a.schoolName || '').localeCompare(String(b.schoolName || ''))
+    )
+  }, [rows])
+
+  useEffect(() => {
+    if (schools.length === 1 && !selectedSchoolId) {
+      setSelectedSchoolId(String(schools[0].id))
+    }
+  }, [schools, selectedSchoolId])
+
+  const showSchoolSelector = isAdmin && schools.length > 1
+
+  const cards = useMemo(() => {
+    if (!selectedSchoolId) return []
+    const scoped = rows.filter(
+      (row) => String(row?.itemType?.school?.id) === String(selectedSchoolId)
+    )
+    const sorted = groupByCategoryGroup(scoped).sort(
+      byCategoryOrder((c: any) => c?.groupKey)
+    )
+    return expandByGender(sorted)
+  }, [rows, selectedSchoolId])
+
+  const filteredCards = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return cards
+    return cards.filter((c) => {
+      const name = String(c?.category?.categoryName || '').toLowerCase()
+      const label = String(c?.displayLabel || '').toLowerCase()
+      return name.includes(q) || label.includes(q)
+    })
+  }, [cards, search])
+
+  const filteredColors = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return colors
+    return colors.filter((c) =>
+      String(c?.colorName || '')
+        .toLowerCase()
+        .includes(q)
+    )
+  }, [colors, search])
+
+  const baseInventoryData = useMemo(() => {
+    if (!selectedColor) return []
+    return selectedColor.items || []
+  }, [selectedColor])
+
+  const selectedSchoolName = useMemo(
+    () =>
+      schools.find((s) => String(s.id) === String(selectedSchoolId))
+        ?.schoolName || '',
+    [schools, selectedSchoolId]
+  )
+
+  const handleCardClick = (card: any) => {
+    const cols = buildColors(card.items)
+    setSelectedCategory(card)
+    setColors(cols)
+    setSearch('')
+
+    if (cols.length === 1) {
+      setSelectedColor(cols[0])
+      setViewLevel('items')
+    } else {
+      setSelectedColor(null)
+      setViewLevel('colors')
+    }
+  }
+
+  const handleColorClick = (color: any) => {
+    setSelectedColor(color)
+    setSearch('')
+    setViewLevel('items')
+  }
+
+  const handleBackToCards = () => {
+    setSelectedCategory(null)
+    setSelectedColor(null)
+    setColors([])
+    setSearch('')
+    setViewLevel('cards')
+  }
+
+  const handleBackToColors = () => {
+    setSelectedColor(null)
+    setSearch('')
+    setViewLevel('colors')
+  }
+
+  const handleSchoolChange = (e: SelectChangeEvent) => {
+    setSelectedSchoolId(e.target.value)
+  }
+
+  if (loading) {
+    return <LoadingSpinner message="Loading uniforms..." />
+  }
+
+  if (error) {
+    return (
+      <CustomErrorButton
+        title="Error Loading Uniforms"
+        message={error}
+        onRetry={() => {
+          setError(null)
+          fetchBalances()
+        }}
+      />
+    )
+  }
+
+  return (
+    <Box sx={{ p: 4 }}>
+      <Box sx={{ mb: 2 }}>
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          sx={{ color: 'var(--color-darker)' }}
+        >
+          Uniform Overview
+        </Typography>
+      </Box>
+
+      <h2 className="text-xl font-bold text-gray-900 mb-4">
+        {toTitleCase(selectedSchoolName)}
+      </h2>
+
+      {viewLevel !== 'cards' && selectedCategory && (
+        <div className="mb-4 overflow-x-auto">
+          <nav className="flex items-center gap-2 text-sm whitespace-nowrap">
+            <button
+              type="button"
+              onClick={handleBackToCards}
+              className="cursor-pointer text-[var(--color-main)] hover:underline"
+            >
+              Uniforms
+            </button>
+
+            <span className="text-gray-400">/</span>
+
+            {viewLevel === 'items' && isSingleColor ? (
+              <span className="text-gray-900 font-semibold">
+                {`${selectedColor?.colorName || ''} ${selectedCategory?.category?.categoryName || ''}`.trim()}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleBackToColors}
+                className={`cursor-pointer ${
+                  viewLevel === 'colors'
+                    ? 'text-gray-900 font-semibold'
+                    : 'text-[var(--color-main)] hover:underline'
+                }`}
+              >
+                {selectedCategory?.category?.categoryName}
+              </button>
+            )}
+
+            {viewLevel === 'items' && !isSingleColor && (
+              <>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-900 font-semibold">
+                  {selectedColor?.colorName}
+                </span>
+              </>
+            )}
+          </nav>
+        </div>
+      )}
+
+      {viewLevel !== 'items' && (
+        <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center">
+          {viewLevel === 'cards' && showSchoolSelector && (
+            <FormControl size="small" sx={{ minWidth: 260 }}>
+              <InputLabel id="school-label">School</InputLabel>
+              <Select
+                labelId="school-label"
+                label="School"
+                value={selectedSchoolId}
+                onChange={handleSchoolChange}
+              >
+                {schools.map((s) => (
+                  <MenuItem key={s.id} value={String(s.id)}>
+                    {toTitleCase(s.schoolName)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {(viewLevel === 'colors' || selectedSchoolId) && (
+            <div className="w-full sm:w-[320px]">
+              <TextField
+                size="small"
+                fullWidth
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={
+                  viewLevel === 'colors'
+                    ? 'Search colours...'
+                    : 'Search uniforms...'
+                }
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {viewLevel === 'cards' && showSchoolSelector && !selectedSchoolId && (
+        <Typography variant="body2" color="text.secondary">
+          Select a school to view its uniforms.
+        </Typography>
+      )}
+
+      {viewLevel === 'cards' && (
+        <>
+          {selectedSchoolId && filteredCards.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No uniforms found.
+            </Typography>
+          )}
+
+          {filteredCards.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+              {filteredCards.map((itemType, index) => (
+                <UniformOverviewCard
+                  key={itemType.id || index}
+                  itemType={itemType}
+                  onClick={() => handleCardClick(itemType)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {viewLevel === 'colors' && (
+        <>
+          {filteredColors.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No colours found.
+            </Typography>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              {filteredColors.map((color, index) => (
+                <ColorCard
+                  key={`${color.colorName}-${index}`}
+                  color={color}
+                  onClick={() => handleColorClick(color)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {viewLevel === 'items' && (
+        <>
+          <InventoryOverviewCard
+            items={baseInventoryData}
+            selectedItemType={selectedCategory}
+            selectedColor={selectedColor}
+            isAdmin={isAdmin}
+          />
+          <InventoryBreakdownCard items={baseInventoryData} isAdmin={isAdmin} schoolLogoUrl={null} />
+
+          <InventorySection
+            title="Available for School Stock"
+            items={baseInventoryData.filter(
+              (r: any) => r.itemStatus === 'GeneralOffice' && r.storedAt === 'School'
+            )}
+            onRowClick={(item: any) => openPreview(item)}
+          />
+
+          <Box sx={{ mt: 3 }}>
+            <InventorySection
+              title="Reserved for PSG Activities"
+              items={baseInventoryData.filter(
+                (r: any) => r.itemStatus === 'ForSale' && r.storedAt === 'School'
+              )}
+              onRowClick={(item: any) => openPreview(item)}
+            />
+          </Box>
+
+          {isAdmin && (
+            <>
+              <Box sx={{ mt: 3 }}>
+                <InventorySection
+                  title="For Repurposing"
+                  items={baseInventoryData.filter(
+                    (r: any) => r.itemStatus === 'ForRepurpose' && r.storedAt === 'TCC'
+                  )}
+                  onRowClick={(item: any) => openPreview(item)}
+                />
+              </Box>
+              <Box sx={{ mt: 3 }}>
+                <InventorySection
+                  title="For Recycling/Disposal"
+                  items={baseInventoryData.filter(
+                    (r: any) => r.itemStatus === 'Disposed' && r.storedAt === 'Exited'
+                  )}
+                  onRowClick={(item: any) => openPreview(item)}
+                />
+              </Box>
+            </>
+          )}
+        </>
+      )}
+
+      <InventoryBalancePreviewModal
+        isOpen={previewOpen}
+        onClose={closePreview}
+        item={previewItem}
+      />
+    </Box>
+  )
+}

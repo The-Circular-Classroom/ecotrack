@@ -1,0 +1,413 @@
+// @ts-nocheck
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { getRoleFromSession } from "@/utils/auth";
+import { getCategoryOrder, getSubCategoryOrder } from "@/utils/categoryOrder";
+
+import { Box, Typography } from "@mui/material";
+import { FaPlus, FaCheck } from "react-icons/fa6";
+import { TbCancel } from "react-icons/tb";
+
+import ItemTypeCard from "@/components/ItemTypeCard";
+import AddMethodModal from "@/components/AddMethodModal";
+import ItemDetailsModal from "@/components/ItemDetailsModal";
+import UploadCSVModal from "@/components/UploadCSVModal";
+import SnackbarAlert from "@/components/SnackbarAlert";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import CustomButton from "@/components/ui/CustomButton";
+import CustomErrorButton from "@/components/ui/CustomErrorButton";
+
+function toSlug(name) {
+  return (name || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[_\s]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
+}
+
+export default function SchoolItemTypesContent() {
+  const router = useRouter();
+
+  const [role, setRole] = useState("UNKNOWN");
+  const isAdmin = role === "TCC_ADMIN";
+
+  const [school, setSchool] = useState(null);
+  const [schools] = useState([]);
+  const [itemTypes, setItemTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Add modal state
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [itemDetailsModalOpen, setItemDetailsModalOpen] = useState(false);
+  const [uploadCSVModalOpen, setUploadCSVModalOpen] = useState(false);
+  const [psgItems, setPsgItems] = useState([]);
+  const [donationDrives, setDonationDrives] = useState([]);
+  const [itemDetailsSubmitting, setItemDetailsSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+
+  useEffect(() => {
+    setRole(getRoleFromSession());
+  }, []);
+
+  // Read school from sessionStorage
+  useEffect(() => {
+    if (role === "UNKNOWN") return;
+    try {
+      const stored = sessionStorage.getItem("_invSelectedSchool");
+      if (stored) {
+        setSchool(JSON.parse(stored));
+        return;
+      }
+    } catch (_) {}
+    router.replace("/inventory/items");
+  }, [role, router]);
+
+  // Fetch preset data for add modal
+  const fetchPresetData = useCallback(
+    async (schoolId) => {
+      try {
+        const url = `/api/inventory/item-types?schoolId=${schoolId}&pageSize=100`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch item type data");
+        const result = await res.json();
+        setPsgItems(result.itemTypes || result.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [],
+  );
+
+  const fetchDonationDrives = useCallback(
+    async (schoolId) => {
+      if (!schoolId) return;
+      try {
+        const res = await fetch(
+          `/api/donation-drive/school/${schoolId}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch donation drives");
+        const result = await res.json();
+        setDonationDrives(result.data || result || []);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [],
+  );
+
+  const fetchItemTypes = useCallback(async () => {
+    if (!school?.id) return;
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `/api/inventory/balance?schoolId=${school.id}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch item types");
+
+      const result = await res.json();
+      const rows = result.balances || result.data || [];
+
+      const categoryMap = new Map();
+      rows.forEach((row) => {
+        const category = row?.itemType?.category;
+        const categoryId = category?.id ?? row?.itemType?.categoryId;
+        if (!categoryId) return;
+
+        if (!categoryMap.has(categoryId)) {
+          categoryMap.set(categoryId, {
+            id: categoryId,
+            category,
+            schoolStock: 0,
+            psgActivities: 0,
+            forRepurposing: 0,
+            recyclingDisposal: 0,
+            items: [],
+            colors: new Map(),
+          });
+        }
+        const entry = categoryMap.get(categoryId);
+
+        if (row.itemStatus === "GeneralOffice" && row.storedAt === "School")
+          entry.schoolStock += row.quantity;
+        if (row.itemStatus === "ForSale" && row.storedAt === "School")
+          entry.psgActivities += row.quantity;
+        if (row.itemStatus === "ForRepurpose" && row.storedAt === "TCC")
+          entry.forRepurposing += row.quantity;
+        if (row.itemStatus === "Disposed" && row.storedAt === "Exited")
+          entry.recyclingDisposal += row.quantity;
+        entry.items.push(row);
+
+        const colorName = row?.itemType?.primaryColour?.colourName;
+        const colorHex =
+          row?.itemType?.primaryColour?.hexcode ||
+          row?.itemType?.primaryColour?.hexCode ||
+          row?.itemType?.primaryColour?.colourHex ||
+          row?.itemType?.primaryColour?.hex;
+        if (colorName && !entry.colors.has(colorName))
+          entry.colors.set(colorName, { colorName, colorHex });
+      });
+
+      const grouped = Array.from(categoryMap.values())
+        .map((g) => ({
+          ...g,
+          totalQuantity:
+            g.schoolStock +
+            g.psgActivities +
+            g.forRepurposing +
+            g.recyclingDisposal,
+          colorOptions: Array.from(g.colors.values()),
+          colorCount: g.colors.size,
+          imageUrl: g.items[0]?.itemType?.imageUrl || null,
+          schoolLogoUrl: school?.logoUrl || null,
+        }))
+        .sort((a, b) => {
+          const primary =
+            getCategoryOrder(a.category?.categoryName) -
+            getCategoryOrder(b.category?.categoryName);
+          return primary !== 0
+            ? primary
+            : getSubCategoryOrder(a.category?.categoryName) -
+                getSubCategoryOrder(b.category?.categoryName);
+        });
+
+      setItemTypes(grouped);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl, school]);
+
+  useEffect(() => {
+    if (school?.id) {
+      fetchItemTypes();
+      fetchPresetData(school.id);
+      fetchDonationDrives(school.id);
+    }
+  }, [school, fetchItemTypes, fetchPresetData, fetchDonationDrives]);
+
+  // Add modal handlers
+  const closeAddModal = () => {
+    setAddModalOpen(false);
+    setItemDetailsModalOpen(false);
+  };
+  const chooseAddManually = () => {
+    setAddModalOpen(false);
+    setItemDetailsModalOpen(true);
+  };
+  const chooseUploadExcel = () => {
+    setAddModalOpen(false);
+    setUploadCSVModalOpen(true);
+  };
+
+  const handleAddNewItemSubmit = useCallback(
+    async (formData) => {
+      setItemDetailsSubmitting(true);
+      try {
+        const res = await fetch("/api/donation-drive/donate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            category_name: formData.category_name,
+            primary_colour: formData.primary_colour,
+            primary_colour_hex: formData.primary_colour_hex,
+            secondary_colour: formData.secondary_colour,
+            secondary_colour_hex: formData.secondary_colour_hex,
+            size_name: formData.size_name,
+            quantity: formData.quantity,
+            to_status: formData.to_status,
+            item_type_id: formData.item_type_id,
+            school_id: formData.school_id,
+            donation_drive_id: formData.donation_drive_id,
+            transaction_type: "DonationIn",
+            to_stored_at: formData.to_stored_at,
+            remarks: "Manual donation",
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setSnackbar({
+            open: true,
+            message: errData.message || "Failed to add new piece",
+            severity: "error",
+          });
+          throw new Error(errData.message || "Failed to add new piece");
+        }
+
+        setSnackbar({
+          open: true,
+          message: "Items added successfully",
+          severity: "success",
+        });
+        setItemDetailsModalOpen(false);
+        fetchItemTypes();
+        if (school?.id) fetchPresetData(school.id);
+      } catch (err) {
+        setSnackbar({
+          open: true,
+          message: err?.message || "Failed to add new piece",
+          severity: "error",
+        });
+      } finally {
+        setItemDetailsSubmitting(false);
+      }
+    },
+    [apiUrl, school, fetchItemTypes, fetchPresetData],
+  );
+
+  const canOpenAdd = !!school?.id && (isAdmin || psgItems.length > 0);
+  const schoolName = school?.schoolName || "";
+
+  if (loading) return <LoadingSpinner message="Loading items..." />;
+  if (error)
+    return (
+      <Box sx={{ p: 4 }}>
+        <CustomErrorButton onClick={fetchItemTypes} />
+        <Typography color="error" sx={{ mt: 1 }}>
+          {error}
+        </Typography>
+      </Box>
+    );
+
+  return (
+    <Box sx={{ p: 4 }}>
+      {/* ── Page title + Add button ── */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 2,
+        }}
+      >
+        <Typography
+          variant="h4"
+          fontWeight={700}
+          sx={{ color: "var(--color-darker)" }}
+        >
+          Inventory by Items
+        </Typography>
+
+        {canOpenAdd && (
+          <Box sx={{ display: "flex", gap: 1.5 }}>
+            <CustomButton
+              onClick={() => setAddModalOpen(true)}
+              icon={<FaPlus />}
+              className="w-full sm:w-auto"
+            >
+              Add New Piece
+            </CustomButton>
+          </Box>
+        )}
+      </Box>
+
+      {/* ── Breadcrumb: Schools / School Name ── */}
+      <div className="mb-4 overflow-x-auto">
+        <nav className="flex items-center gap-2 text-sm whitespace-nowrap">
+          <button
+            type="button"
+            onClick={() => router.push("/inventory/items")}
+            className="cursor-pointer text-[var(--color-main)] hover:underline"
+          >
+            Schools
+          </button>
+          <span className="text-gray-400">/</span>
+          <span className="text-gray-900 font-semibold">{schoolName}</span>
+        </nav>
+      </div>
+
+      {/* ── Item types grid ── */}
+      {itemTypes.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          No items found for this school.
+        </Typography>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          {itemTypes.map((itemType, index) => (
+            <ItemTypeCard
+              key={itemType.id || index}
+              itemType={itemType}
+              isAdmin={isAdmin}
+              onClick={() => {
+                const slug = toSlug(itemType.category?.categoryName);
+                if (
+                  itemType.colorCount === 1 &&
+                  itemType.colorOptions?.[0]?.colorName
+                ) {
+                  // Single colour → skip colours page, go directly to items
+                  const colorSlug = toSlug(itemType.colorOptions[0].colorName);
+                  router.push(`/inventory/items/school/${slug}/${colorSlug}`);
+                } else {
+                  router.push(`/inventory/items/school/${slug}`);
+                }
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Modals ── */}
+      <SnackbarAlert
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={(e, reason) => {
+          if (reason !== "clickaway")
+            setSnackbar((p) => ({ ...p, open: false }));
+        }}
+        message={snackbar.message}
+        icon={snackbar.severity === "success" ? <FaCheck /> : <TbCancel />}
+        severity={snackbar.severity}
+      />
+
+      <AddMethodModal
+        isOpen={addModalOpen}
+        onClose={closeAddModal}
+        onAddManually={chooseAddManually}
+        onUploadExcel={chooseUploadExcel}
+        showManual={isAdmin}
+      />
+
+      <ItemDetailsModal
+        isOpen={itemDetailsModalOpen}
+        onClose={() => setItemDetailsModalOpen(false)}
+        psgItems={psgItems}
+        selectedSchool={school}
+        donationDrives={donationDrives}
+        onSubmit={handleAddNewItemSubmit}
+        submitting={itemDetailsSubmitting}
+        isAdmin={isAdmin}
+        schools={schools}
+        selectedItemType={null}
+        selectedColor={null}
+        onSchoolChange={(newId) =>
+          setSchool((prev) =>
+            prev && typeof prev === "object"
+              ? { ...prev, id: newId }
+              : { id: newId },
+          )
+        }
+      />
+
+      <UploadCSVModal
+        isOpen={uploadCSVModalOpen}
+        onClose={() => setUploadCSVModalOpen(false)}
+        selectedSchool={school}
+      />
+    </Box>
+  );
+}

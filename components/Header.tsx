@@ -1,191 +1,264 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import Avatar from '@mui/material/Avatar';
-import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import LogoutIcon from '@mui/icons-material/Logout';
-import PersonIcon from '@mui/icons-material/Person';
-import InventoryIcon from '@mui/icons-material/Inventory2Outlined';
-import AnalyticsIcon from '@mui/icons-material/BarChartOutlined';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter, usePathname } from 'next/navigation'
+import SnackbarAlert from './SnackbarAlert'
+import { getRoleFromSession, clearAuthSession, fetchUserProfile, mapRoleFromLegacy } from '@/utils/auth'
 
-const MODULE_TABS = [
-  { label: 'Inventory', href: '/inventory', icon: <InventoryIcon fontSize="small" /> },
-  { label: 'Analytics', href: '/analytics', icon: <AnalyticsIcon fontSize="small" /> },
-];
+const APPS = [
+  {
+    key: 'inventory',
+    label: 'Inventory Management',
+    shortLabel: 'Inventory',
+    href: '/inventory',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+    ),
+  },
+  {
+    key: 'analytics',
+    label: 'Analytics',
+    shortLabel: 'Analytics',
+    href: '/analytics/overview',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+  },
+]
+
+const AUTH_ROUTES = ['/auth/login', '/auth/signup', '/auth/forgot-password', '/auth/reset-password']
 
 export default function Header() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const supabase = createSupabaseBrowserClient();
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  const role = getRoleFromSession()
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
-  const menuOpen = Boolean(anchorEl);
+  const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState('Something went wrong')
+  const [severity, setSeverity] = useState<'success' | 'info' | 'warning' | 'error'>('error')
+  const [userFullName, setUserFullName] = useState('Guest')
+  const [schoolLogoUrl, setSchoolLogoUrl] = useState<string | null>(null)
+  const [schoolName, setSchoolName] = useState('')
 
-  const activeTabIndex = useMemo(() => {
-    if (pathname?.startsWith('/analytics')) return 1;
-    if (pathname?.startsWith('/inventory')) return 0;
-    return false as const;
-  }, [pathname]);
+  const hideHeaderUI = useMemo(() => {
+    if (!pathname) return false
+    return AUTH_ROUTES.some((p) => pathname.startsWith(p))
+  }, [pathname])
+
+  const currentApp = useMemo(() => {
+    if (pathname?.startsWith('/analytics')) return APPS[1]
+    return APPS[0]
+  }, [pathname])
+
+  const handleClose = () => {
+    setOpen(false)
+  }
+
+  const handleLogout = useCallback(async () => {
+    setDropdownOpen(false)
+    try {
+      await clearAuthSession()
+      setUserFullName('Guest')
+      setSchoolLogoUrl(null)
+      setSchoolName('')
+      router.push('/auth/login')
+    } catch (error: any) {
+      setMessage(error?.message || 'Failed to logout')
+      setSeverity('error')
+      setOpen(true)
+    }
+  }, [router])
+
+  const retrieveUserDetails = useCallback(async () => {
+    if (hideHeaderUI) return
+
+    try {
+      const profile = await fetchUserProfile()
+      if (profile) {
+        setUserFullName(profile.fullName || 'User')
+        if (profile.school) {
+          setSchoolName(profile.school.name || '')
+          setSchoolLogoUrl(`/api/school/${profile.school.id}/logo`)
+        }
+      } else {
+        setUserFullName('Guest')
+        if (!pathname?.startsWith('/auth') && pathname !== '/') {
+          router.push('/auth/login')
+        }
+      }
+    } catch (error: any) {
+      setUserFullName('Guest')
+      setMessage(error?.message || 'Failed to load user session')
+      setSeverity('error')
+      setOpen(true)
+    }
+  }, [router, pathname, hideHeaderUI])
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user?.email) {
-        setUserEmail(data.user.email);
-      }
-    };
-    getUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    retrieveUserDetails()
+  }, [retrieveUserDetails])
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    router.push(MODULE_TABS[newValue].href);
-  };
+  useEffect(() => {
+    const onSchoolChanged = (e: any) => {
+      setSchoolLogoUrl(e.detail?.logoUrl || null)
+      setSchoolName(e.detail?.schoolName || '')
+    }
+    window.addEventListener('school-changed', onSchoolChanged)
+    return () => window.removeEventListener('school-changed', onSchoolChanged)
+  }, [])
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = async () => {
-    handleMenuClose();
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+  useEffect(() => {
+    const onAuthChanged = () => {
+      retrieveUserDetails()
+    }
+    window.addEventListener('auth-changed', onAuthChanged)
+    return () => window.removeEventListener('auth-changed', onAuthChanged)
+  }, [retrieveUserDetails])
 
   return (
-    <AppBar
-      position="static"
-      elevation={1}
-      sx={{
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-      }}
-    >
-      <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
-        {/* Left section: Logo + Module Tabs */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          {/* TCC Logo */}
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              fontWeight: 700,
-              color: '#213c2d',
-              letterSpacing: 1,
-              cursor: 'pointer',
-            }}
-            onClick={() => router.push('/overview')}
-          >
-            TCC
-          </Typography>
+    <>
+      <header className="bg-white border-b border-gray-200 shadow-sm relative z-30">
+        <div className="flex justify-between w-full px-8">
+          <div className="flex w-full items-center justify-between h-16">
+            {/* Logo + Module Switcher */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                <Image
+                  src="/images/Logo-Symbol-green.png"
+                  alt="Logo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
 
-          {/* Module Switcher Tabs */}
-          <Tabs
-            value={activeTabIndex}
-            onChange={handleTabChange}
-            aria-label="Module navigation"
-            sx={{
-              minHeight: 48,
-              '& .MuiTab-root': {
-                minHeight: 48,
-                textTransform: 'none',
-                fontWeight: 500,
-                fontSize: '0.875rem',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#69aa56',
-              },
-              '& .Mui-selected': {
-                color: '#69aa56 !important',
-              },
-            }}
-          >
-            {MODULE_TABS.map((tab) => (
-              <Tab
-                key={tab.label}
-                label={tab.label}
-                icon={tab.icon}
-                iconPosition="start"
-                sx={{ gap: 0.5 }}
-              />
-            ))}
-          </Tabs>
-        </Box>
+              {!hideHeaderUI && role !== 'UNKNOWN' && (
+                <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-0.5">
+                  {APPS.map((app) => {
+                    const isActive = app.key === currentApp.key
+                    return (
+                      <Link
+                        key={app.key}
+                        href={app.href}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          isActive
+                            ? 'bg-white text-[var(--color-main)] shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {app.icon}
+                        {app.shortLabel}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
 
-        {/* Right section: User Profile Dropdown */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton
-            onClick={handleMenuOpen}
-            size="small"
-            aria-controls={menuOpen ? 'user-menu' : undefined}
-            aria-haspopup="true"
-            aria-expanded={menuOpen ? 'true' : undefined}
-            aria-label="User profile menu"
-          >
-            <Avatar
-              sx={{
-                width: 36,
-                height: 36,
-                bgcolor: '#69aa56',
-                fontSize: '0.875rem',
-              }}
-            >
-              {userEmail ? userEmail[0].toUpperCase() : <PersonIcon />}
-            </Avatar>
-          </IconButton>
+              {schoolLogoUrl && (
+                <>
+                  <div className="h-8 w-px bg-gray-300" aria-hidden="true" />
+                  <div className="w-10 h-10 flex items-center justify-center">
+                    <Image
+                      src={schoolLogoUrl}
+                      alt={schoolName || 'School Logo'}
+                      width={40}
+                      height={40}
+                      className="object-contain"
+                      unoptimized // logo routes may not be standard optimized types
+                    />
+                  </div>
+                </>
+              )}
+            </div>
 
-          <Menu
-            id="user-menu"
-            anchorEl={anchorEl}
-            open={menuOpen}
-            onClose={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            slotProps={{
-              paper: {
-                elevation: 3,
-                sx: { minWidth: 200, mt: 1 },
-              },
-            }}
-          >
-            {userEmail && (
-              <Box sx={{ px: 2, py: 1.5 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Signed in as
-                </Typography>
-                <Typography variant="body2" fontWeight={600} noWrap>
-                  {userEmail}
-                </Typography>
-              </Box>
+            {/* Profile Dropdown */}
+            {!hideHeaderUI && (
+              <div className="relative ml-auto">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                    <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{userFullName}</span>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {dropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)}></div>
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      <Link
+                        href="/"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M4 10v10h16V10M9 20v-6h6v6" />
+                        </svg>
+                        <span className="text-sm text-gray-700">Dashboard</span>
+                      </Link>
+
+                      <Link
+                        href="/faq"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm text-gray-700">FAQ</span>
+                      </Link>
+
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-sm text-gray-700">Settings</span>
+                      </Link>
+
+                      <hr className="my-1 border-gray-200" />
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors w-full text-left cursor-pointer"
+                      >
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span className="text-sm text-gray-700">Logout</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-            {userEmail && <Divider />}
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
-          </Menu>
-        </Box>
-      </Toolbar>
-    </AppBar>
-  );
+          </div>
+        </div>
+      </header>
+
+      <SnackbarAlert open={open} onClose={handleClose} message={message} severity={severity} />
+    </>
+  )
 }
