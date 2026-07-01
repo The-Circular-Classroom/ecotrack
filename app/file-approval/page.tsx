@@ -418,18 +418,11 @@ export default function FileApprovalPage() {
     severity: 'success',
   });
 
-  const apiUrl = '';
-
   const fetchValidatedFiles = useCallback(async () => {
-    if (!apiUrl) {
-      setError('API URL not configured');
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/csv/validate`);
+      const response = await fetch('/api/csv/validate');
       const json = await response.json();
       if (!response.ok) {
         throw new Error(json.message || json.error || 'Failed to load files');
@@ -451,7 +444,7 @@ export default function FileApprovalPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     fetchValidatedFiles();
@@ -496,13 +489,12 @@ export default function FileApprovalPage() {
   };
 
   const fetchFileContent = async (key) => {
-    if (!apiUrl) return;
     setLoadingContentKey(key);
     setContentErrorByKey((prev) => ({ ...prev, [key]: null }));
     try {
       const encodedKey = encodeURIComponent(key);
       const response = await fetch(
-        `${apiUrl}/api/csv/validate?key=${encodedKey}`
+        `/api/csv/validate?key=${encodedKey}`
       );
       const json = await response.json();
       if (!response.ok) {
@@ -532,10 +524,10 @@ export default function FileApprovalPage() {
 
   const handleApprove = async (e, file) => {
     e.stopPropagation();
-    if (!apiUrl || !file?.key) return;
+    if (!file?.key) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/csv/approve`, {
+      const response = await fetch('/api/csv/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -559,10 +551,10 @@ export default function FileApprovalPage() {
 
   const handleDeny = async (e, file) => {
     e.stopPropagation();
-    if (!apiUrl || !file?.key) return;
+    if (!file?.key) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/donation-drive/deny-file`, {
+      const response = await fetch('/api/donation-drive/deny-file', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

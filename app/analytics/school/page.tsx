@@ -394,11 +394,6 @@ export default function SchoolAnalyticsPage() {
     let cancelled = false;
 
     async function run() {
-      if (!analyticsApiUrl) {
-        if (!cancelled) { setPartialErrors(['Analytics service is not configured.']); setLoading(false); }
-        return;
-      }
-
       const schoolId = effectiveSchoolId;
 
       if (!cancelled) { setLoading(true); setPartialErrors([]); }

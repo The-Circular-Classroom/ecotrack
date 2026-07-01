@@ -528,10 +528,6 @@ export default function OverallAnalyticsPage() {
     let cancelled = false;
 
     async function run() {
-      if (!analyticsApiUrl) {
-        if (!cancelled) setLoadingPeriod(false);
-        return;
-      }
       const schoolId = selectedSchoolId === 'all' ? '' : selectedSchoolId;
       if (!cancelled) setLoadingPeriod(true);
 
