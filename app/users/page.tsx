@@ -225,7 +225,7 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const response = await fetch('/api/school')
+        const response = await fetch('/api/schools')
         const result = await response.json()
         const schoolArray = result.schools || result.data || []
         setSchools(schoolArray)

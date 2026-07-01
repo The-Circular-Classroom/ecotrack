@@ -37,7 +37,7 @@ export default function CreateUserModal({ onClose, loggedInSchoolId = null }: Cr
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const res = await fetch('/api/school')
+        const res = await fetch('/api/schools')
         const result = await res.json()
         setSchools(result.schools || result.data || [])
       } catch (err) {

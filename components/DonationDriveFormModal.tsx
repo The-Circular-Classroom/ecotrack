@@ -106,7 +106,7 @@ export default function DonationDriveFormModal({ isAdmin, onClose, editData = nu
         const fetchSchools = async () => {
             try {
                 const apiUrl = '';
-                const res = await fetch(`${apiUrl}/api/school`, {
+                const res = await fetch(`${apiUrl}/api/schools`, {
                     headers: { Authorization: `Bearer ${sessionStorage.getItem('accessToken')}` },
                 });
                 const result = await res.json();
@@ -174,8 +174,8 @@ export default function DonationDriveFormModal({ isAdmin, onClose, editData = nu
         try {
             const apiUrl = '';
             const url = editData
-                ? `${apiUrl}/api/donation-drive/${editData.id}`
-                : `${apiUrl}/api/donation-drive`;
+                ? `${apiUrl}/api/donations/drives/${editData.id}`
+                : `${apiUrl}/api/donations/drives`;
             const method = editData ? 'PATCH' : 'POST';
 
             const response = await fetch(url, {

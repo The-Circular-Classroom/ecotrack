@@ -87,7 +87,7 @@ export default function UpdateItemCondition() {
       setLoading(true);
       const apiUrl = '';
 
-      const response = await fetch(`${apiUrl}/api/inventory`, {
+      const response = await fetch(`${apiUrl}/api/inventory/balance`, {
         headers: {
           Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
         },
@@ -101,7 +101,7 @@ export default function UpdateItemCondition() {
         );
       }
 
-      const sortedData = (result.data || []).sort(
+      const sortedData = (result.balances || []).sort(
         (a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated),
       );
 
@@ -193,33 +193,38 @@ export default function UpdateItemCondition() {
       const apiUrl = '';
 
       const itemsToUpdate = selectedItems.map((item) => ({
-        inventory_id: item.id,
-        item_type_id: item.itemTypeId,
-        from_status: item.itemStatus,
-        to_status: newCondition[item.id]?.status || item.itemStatus,
-        from_quantity: item.quantity,
-        remove_quantity: newCondition[item.id]?.quantity || 0,
+        itemTypeId: item.itemTypeId,
+        sizeOptionId: item.sizeOptionId,
+        fromStatus: item.itemStatus,
+        toStatus: newCondition[item.id]?.status || item.itemStatus,
+        quantity: newCondition[item.id]?.quantity || 1,
         remarks: newCondition[item.id]?.remarks || "",
-        size_option_id: item.sizeOptionId,
-        from_stored_at: item.storedAt,
-        stored_at: newCondition[item.id]?.storedAt || item.storedAt,
+        fromStoredAt: item.storedAt,
+        toStoredAt: newCondition[item.id]?.storedAt || item.storedAt,
+        transactionType: 'StatusChange',
+        userId: null,
       }));
 
-      const response = await fetch(
-        `${apiUrl}/api/inventory/update-item-condition`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify({ itemsToUpdate }),
-        },
+      // Submit each transaction individually
+      const results = await Promise.allSettled(
+        itemsToUpdate.map((txn) =>
+          fetch(`${apiUrl}/api/inventory/transactions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
+            },
+            body: JSON.stringify(txn),
+          }).then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Transaction failed");
+            return data;
+          })
+        )
       );
 
-      const result = await response.json();
-
-      if (response.ok) {
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length === 0) {
         setSnackbar({
           open: true,
           message: "Items updated successfully",
@@ -229,9 +234,10 @@ export default function UpdateItemCondition() {
         setNewCondition({});
         await fetchAllInventoryItems();
       } else {
+        const errorMsg = failures.map((f) => f.reason?.message || 'Unknown error').join('; ');
         setSnackbar({
           open: true,
-          message: result.message || "Failed to update items",
+          message: `Failed to update ${failures.length} item(s): ${errorMsg}`,
           severity: "error",
         });
       }

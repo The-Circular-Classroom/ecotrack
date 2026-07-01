@@ -92,7 +92,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
     try {
       const accessToken = token();
       const [analyticsRes, inventoryRes] = await Promise.all([
-        fetch(`/api/school`, {
+        fetch(`/api/schools`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         }),
         fetch(`${apiUrl}/api/inventory/balances`, {
@@ -226,7 +226,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
     setLoadingDrives(true);
     try {
       const res = await fetch(
-        `${apiUrl}/api/donation-drive/school/${schoolId}`,
+        `${apiUrl}/api/donations/drives/school/${schoolId}`,
         {
           headers: { Authorization: `Bearer ${token()}` },
         }
@@ -252,7 +252,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
   const downloadForLocation = async (loc) => {
     const driveId = selectedDriveId;
     const res = await fetch(
-      `${apiUrl}/api/donation-drive/${driveId}/csv-template?location=${loc}`,
+      `${apiUrl}/api/donations/drives/${driveId}/csv-template?location=${loc}`,
       {
         headers: { Authorization: `Bearer ${token()}` },
       }

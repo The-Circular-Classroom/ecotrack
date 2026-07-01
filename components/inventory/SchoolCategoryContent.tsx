@@ -93,7 +93,7 @@ export default function SchoolItemTypesContent() {
       if (!schoolId) return;
       try {
         const res = await fetch(
-          `/api/donation-drive/school/${schoolId}`
+          `/api/donations/drives/school/${schoolId}`
         );
         if (!res.ok) throw new Error("Failed to fetch donation drives");
         const result = await res.json();
@@ -216,7 +216,7 @@ export default function SchoolItemTypesContent() {
     async (formData) => {
       setItemDetailsSubmitting(true);
       try {
-        const res = await fetch("/api/donation-drive/donate", {
+        const res = await fetch("/api/donations/drives/donate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -404,8 +404,8 @@ export default function CategoryTagPage() {
       const base = getApiUrl();
       const headers = getAuthHeader();
       const [catRes, tagRes] = await Promise.all([
-        fetch(`${base}/api/category`, { headers }),
-        fetch(`${base}/api/tag`, { headers }),
+        fetch(`${base}/api/inventory/categories`, { headers }),
+        fetch(`${base}/api/inventory/tags`, { headers }),
       ]);
       if (!catRes.ok || !tagRes.ok)
         throw new Error("Failed to fetch configuration data");
@@ -474,7 +474,7 @@ export default function CategoryTagPage() {
     setCategoryEditLoading(true);
     try {
       const res = await fetch(
-        `${getApiUrl()}/api/category/${editCategory.id}`,
+        `${getApiUrl()}/api/inventory/categories/${editCategory.id}`,
         {
           method: "PATCH",
           headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -504,7 +504,7 @@ export default function CategoryTagPage() {
     setCategoryDeleteLoading(true);
     try {
       const res = await fetch(
-        `${getApiUrl()}/api/category/${categoryDeleteRow.id}`,
+        `${getApiUrl()}/api/inventory/categories/${categoryDeleteRow.id}`,
         { method: "DELETE", headers: getAuthHeader() },
       );
       const data = await res.json();
@@ -534,7 +534,7 @@ export default function CategoryTagPage() {
   const handleTagEdit = async () => {
     setTagEditLoading(true);
     try {
-      const res = await fetch(`${getApiUrl()}/api/tag/${editTag.id}`, {
+      const res = await fetch(`${getApiUrl()}/api/inventory/tags/${editTag.id}`, {
         method: "PATCH",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -558,7 +558,7 @@ export default function CategoryTagPage() {
   const handleTagDelete = async () => {
     setTagDeleteLoading(true);
     try {
-      const res = await fetch(`${getApiUrl()}/api/tag/${tagDeleteRow.id}`, {
+      const res = await fetch(`${getApiUrl()}/api/inventory/tags/${tagDeleteRow.id}`, {
         method: "DELETE",
         headers: getAuthHeader(),
       });

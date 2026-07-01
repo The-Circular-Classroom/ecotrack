@@ -417,8 +417,8 @@ export default function PresetForm({ onClose, editData }) {
     try {
       const response = await fetch(
         isEditing
-          ? `${API_URL}/api/item-type/preset/${editData.item_type_id}`
-          : `${API_URL}/api/item-type/preset`,
+          ? `${API_URL}/api/inventory/item-types/${editData.item_type_id}`
+          : `${API_URL}/api/inventory/item-types`,
         {
           method: isEditing ? "PATCH" : "POST",
           headers: {

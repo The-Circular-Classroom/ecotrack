@@ -439,8 +439,8 @@ export default function DonationDrivePage() {
 
       // Admins fetch all drives; non-admins fetch only their school's
       const url = isAdmin
-        ? `${apiUrl}/api/donation-drive`
-        : `${apiUrl}/api/donation-drive/school/${schoolId}`;
+        ? `${apiUrl}/api/donations/drives`
+        : `${apiUrl}/api/donations/drives/school/${schoolId}`;
 
       if (!isAdmin && !schoolId) {
         setError("No school linked to your account.");
@@ -484,7 +484,7 @@ export default function DonationDrivePage() {
     try {
       const apiUrl = '';
       const response = await fetch(
-        `${apiUrl}/api/donation-drive/${deleteRow.id}`,
+        `${apiUrl}/api/donations/drives/${deleteRow.id}`,
         {
           method: "DELETE",
           headers: {

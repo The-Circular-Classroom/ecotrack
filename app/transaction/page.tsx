@@ -518,7 +518,7 @@ export default function TransactionPage() {
       setLoading(true);
 
       const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/transaction?page=${page + 1}&limit=${pageSize}`,
+      const response = await fetch(`${apiUrl}/api/inventory/transactions?page=${page + 1}&limit=${pageSize}`,
         {
           headers: {
             'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
@@ -559,7 +559,7 @@ export default function TransactionPage() {
     try {
       setDetailLoading(true);
       const apiUrl = '';
-      const res = await fetch(`${apiUrl}/api/item-type/${itemTypeId}`,
+      const res = await fetch(`${apiUrl}/api/inventory/item-types/${itemTypeId}`,
         {
           headers: {
             'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,

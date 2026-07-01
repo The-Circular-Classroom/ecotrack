@@ -196,7 +196,7 @@ export default function PresetPage() {
             setLoading(true);
 
             const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/item-type/preset`,
+            const response = await fetch(`${apiUrl}/api/inventory/item-types`,
                 {
                     headers: {
                         'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
@@ -236,7 +236,7 @@ export default function PresetPage() {
         setDeleteLoading(true);
         try {
             const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/item-type/preset/${deleteRow.item_type_id}`, {
+            const response = await fetch(`${apiUrl}/api/inventory/item-types/${deleteRow.item_type_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,

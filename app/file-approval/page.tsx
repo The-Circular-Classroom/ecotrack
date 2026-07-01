@@ -429,7 +429,7 @@ export default function FileApprovalPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/donation-drive/validated-files`, {
+      const response = await fetch(`${apiUrl}/api/csv/validate`, {
         headers: {
           Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
         },
@@ -506,7 +506,7 @@ export default function FileApprovalPage() {
     try {
       const encodedKey = encodeURIComponent(key);
       const response = await fetch(
-        `${apiUrl}/api/donation-drive/validated-files/content?key=${encodedKey}`,
+        `${apiUrl}/api/csv/validate?key=${encodedKey}`,
         {
           headers: {
             Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
@@ -544,7 +544,7 @@ export default function FileApprovalPage() {
     if (!apiUrl || !file?.key) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/donation-drive/approve-file`, {
+      const response = await fetch(`${apiUrl}/api/csv/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

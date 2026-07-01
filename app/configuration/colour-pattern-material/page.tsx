@@ -406,9 +406,9 @@ export default function ColourPatternMaterialPage() {
       const base = getApiUrl();
       const headers = getAuthHeader();
       const [cRes, pRes, mRes] = await Promise.all([
-        fetch(`${base}/api/colour`, { headers }),
-        fetch(`${base}/api/pattern`, { headers }),
-        fetch(`${base}/api/material`, { headers }),
+        fetch(`${base}/api/inventory/colours`, { headers }),
+        fetch(`${base}/api/inventory/patterns`, { headers }),
+        fetch(`${base}/api/inventory/materials`, { headers }),
       ]);
       if (!cRes.ok || !pRes.ok || !mRes.ok)
         throw new Error("Failed to fetch configuration data");
@@ -458,7 +458,7 @@ export default function ColourPatternMaterialPage() {
   const handleColourEdit = async () => {
     setColourEditLoading(true);
     try {
-      const res = await fetch(`${getApiUrl()}/api/colour/${editColour.id}`, {
+      const res = await fetch(`${getApiUrl()}/api/inventory/colours/${editColour.id}`, {
         method: "PATCH",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -486,7 +486,7 @@ export default function ColourPatternMaterialPage() {
     setColourDeleteLoading(true);
     try {
       const res = await fetch(
-        `${getApiUrl()}/api/colour/${colourDeleteRow.id}`,
+        `${getApiUrl()}/api/inventory/colours/${colourDeleteRow.id}`,
         { method: "DELETE", headers: getAuthHeader() },
       );
       const data = await res.json();
@@ -513,7 +513,7 @@ export default function ColourPatternMaterialPage() {
   const handlePatternEdit = async () => {
     setPatternEditLoading(true);
     try {
-      const res = await fetch(`${getApiUrl()}/api/pattern/${editPattern.id}`, {
+      const res = await fetch(`${getApiUrl()}/api/inventory/patterns/${editPattern.id}`, {
         method: "PATCH",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({ pattern_name: patternName }),
@@ -538,7 +538,7 @@ export default function ColourPatternMaterialPage() {
     setPatternDeleteLoading(true);
     try {
       const res = await fetch(
-        `${getApiUrl()}/api/pattern/${patternDeleteRow.id}`,
+        `${getApiUrl()}/api/inventory/patterns/${patternDeleteRow.id}`,
         { method: "DELETE", headers: getAuthHeader() },
       );
       const data = await res.json();
@@ -566,7 +566,7 @@ export default function ColourPatternMaterialPage() {
     setMaterialEditLoading(true);
     try {
       const res = await fetch(
-        `${getApiUrl()}/api/material/${editMaterial.id}`,
+        `${getApiUrl()}/api/inventory/materials/${editMaterial.id}`,
         {
           method: "PATCH",
           headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -593,7 +593,7 @@ export default function ColourPatternMaterialPage() {
     setMaterialDeleteLoading(true);
     try {
       const res = await fetch(
-        `${getApiUrl()}/api/material/${materialDeleteRow.id}`,
+        `${getApiUrl()}/api/inventory/materials/${materialDeleteRow.id}`,
         { method: "DELETE", headers: getAuthHeader() },
       );
       const data = await res.json();

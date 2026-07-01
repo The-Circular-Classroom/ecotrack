@@ -101,7 +101,7 @@ export default function SchoolCategoryColorContent() {
   const fetchDonationDrives = useCallback(async (schoolId) => {
     if (!schoolId) return;
     try {
-      const res = await fetch(`/api/donation-drive/school/${schoolId}`);
+      const res = await fetch(`/api/donations/drives/school/${schoolId}`);
       if (!res.ok) throw new Error("Failed to fetch donation drives");
       const result = await res.json();
       setDonationDrives(result.data || result || []);
@@ -124,7 +124,7 @@ export default function SchoolCategoryColorContent() {
   const handleAddNewItemSubmit = useCallback(async (formData) => {
     setItemDetailsSubmitting(true);
     try {
-      const res = await fetch("/api/donation-drive/donate", {
+      const res = await fetch("/api/donations/drives/donate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

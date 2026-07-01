@@ -278,7 +278,7 @@ export default function BrandFormModal({ onClose, editData }) {
       if (isEditing) {
         // 1. Update brand name if changed
         if (brandName.trim() !== editData.brandSupplier) {
-          const res = await fetch(`${API_URL}/api/brand/${editData.id}`, {
+          const res = await fetch(`${API_URL}/api/inventory/brands/${editData.id}`, {
             method: "PATCH",
             headers,
             body: JSON.stringify({ brand_supplier: brandName.trim() }),
@@ -300,7 +300,7 @@ export default function BrandFormModal({ onClose, editData }) {
         for (const type of removedTypes) {
           const catId = catData[type]?.catId;
           if (catId) {
-            const res = await fetch(`${API_URL}/api/size/category/${catId}`, {
+            const res = await fetch(`${API_URL}/api/inventory/sizes/category/${catId}`, {
               method: "DELETE",
               headers,
             });
@@ -325,7 +325,7 @@ export default function BrandFormModal({ onClose, editData }) {
 
           if (addedTypes.includes(type)) {
             // Newly added type: create the category then its options
-            const catRes = await fetch(`${API_URL}/api/size/category`, {
+            const catRes = await fetch(`${API_URL}/api/inventory/sizes`, {
               method: "POST",
               headers,
               body: JSON.stringify({
@@ -345,7 +345,7 @@ export default function BrandFormModal({ onClose, editData }) {
             if (type === "OneSize") continue;
             const nonEmpty = cat.options.filter((o) => o.name.trim());
             for (let i = 0; i < nonEmpty.length; i++) {
-              await fetch(`${API_URL}/api/size/option`, {
+              await fetch(`${API_URL}/api/inventory/sizes`, {
                 method: "POST",
                 headers,
                 body: JSON.stringify({
@@ -360,7 +360,7 @@ export default function BrandFormModal({ onClose, editData }) {
             // Existing type: delete removed options then patch/create the rest
             await Promise.all(
               cat.deletedOptionIds.map((id) =>
-                fetch(`${API_URL}/api/size/option/${id}`, {
+                fetch(`${API_URL}/api/inventory/sizes/option/${id}`, {
                   method: "DELETE",
                   headers,
                 }),
@@ -372,7 +372,7 @@ export default function BrandFormModal({ onClose, editData }) {
             for (let i = 0; i < nonEmpty.length; i++) {
               const opt = nonEmpty[i];
               if (opt.id) {
-                await fetch(`${API_URL}/api/size/option/${opt.id}`, {
+                await fetch(`${API_URL}/api/inventory/sizes/option/${opt.id}`, {
                   method: "PATCH",
                   headers,
                   body: JSON.stringify({
@@ -383,7 +383,7 @@ export default function BrandFormModal({ onClose, editData }) {
                 });
               } else {
                 if (!catId) {
-                  const catRes = await fetch(`${API_URL}/api/size/category`, {
+                  const catRes = await fetch(`${API_URL}/api/inventory/sizes`, {
                     method: "POST",
                     headers,
                     body: JSON.stringify({
@@ -394,7 +394,7 @@ export default function BrandFormModal({ onClose, editData }) {
                   const catResData = await catRes.json();
                   catId = catResData.data?.id;
                 }
-                await fetch(`${API_URL}/api/size/option`, {
+                await fetch(`${API_URL}/api/inventory/sizes`, {
                   method: "POST",
                   headers,
                   body: JSON.stringify({
@@ -412,7 +412,7 @@ export default function BrandFormModal({ onClose, editData }) {
         onClose({ success: true, message: "Brand updated successfully" });
       } else {
         // 1. Create brand
-        const brandRes = await fetch(`${API_URL}/api/brand`, {
+        const brandRes = await fetch(`${API_URL}/api/inventory/brands`, {
           method: "POST",
           headers,
           body: JSON.stringify({ brand_supplier: brandName.trim() }),
@@ -429,7 +429,7 @@ export default function BrandFormModal({ onClose, editData }) {
 
         // 2. For each selected type: create category then options
         for (const type of selectedTypes) {
-          const catRes = await fetch(`${API_URL}/api/size/category`, {
+          const catRes = await fetch(`${API_URL}/api/inventory/sizes`, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -453,7 +453,7 @@ export default function BrandFormModal({ onClose, editData }) {
             o.name.trim(),
           );
           for (let i = 0; i < nonEmpty.length; i++) {
-            await fetch(`${API_URL}/api/size/option`, {
+            await fetch(`${API_URL}/api/inventory/sizes`, {
               method: "POST",
               headers,
               body: JSON.stringify({

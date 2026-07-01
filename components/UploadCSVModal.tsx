@@ -858,7 +858,7 @@ export default function UploadCSVModal({ isOpen, onClose, selectedSchool }) {
         });
       }, 200);
 
-      const response = await fetch(`${apiUrl}/api/donation-drive/upload-csv`, {
+      const response = await fetch(`${apiUrl}/api/donations/drives/upload-csv`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${sessionStorage.getItem('accessToken')}` },
         body: formData,

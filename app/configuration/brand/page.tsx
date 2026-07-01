@@ -195,7 +195,7 @@ export default function BrandPage() {
   const fetchBrands = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/brand`, {
+      const res = await fetch(`${API_URL}/api/inventory/brands`, {
         headers: {
           Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
         },
@@ -224,7 +224,7 @@ export default function BrandPage() {
     if (!deleteBrand) return;
     setDeleteLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/brand/${deleteBrand.id}`, {
+      const res = await fetch(`${API_URL}/api/inventory/brands/${deleteBrand.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
