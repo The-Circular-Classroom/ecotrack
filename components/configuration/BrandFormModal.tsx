@@ -21,10 +21,7 @@ const SIZE_TYPE_OPTIONS = [
   { value: "OneSize", label: "One Size" },
 ];
 
-const getToken = () => {
-  if (typeof window === "undefined") return "";
-  return sessionStorage.getItem("accessToken");
-};
+
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -211,7 +208,6 @@ export default function BrandFormModal({ onClose, editData }) {
 
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${getToken()}`,
   };
 
   const showInlineError = (msg) => {

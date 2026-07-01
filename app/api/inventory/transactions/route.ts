@@ -1,8 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
+import { clampPageSize } from '@/lib/pagination'
 import { isValidTransition, type ItemStatus } from '@/lib/inventory/transactions'
 import { updateInventoryBalance, type StorageLocation } from '@/lib/inventory/balance'
+
+/**
+ * GET /api/inventory/transactions - List transactions with pagination.
+ * Admin role required.
+ * Query params: page, limit, schoolId, transactionType
+ */
+export async function GET(request: NextRequest) {
+  const role = request.headers.get('x-user-role')
+  if (!requireRole(role, 'SchoolStaff')) {
+    return NextResponse.json(
+      { error: 'forbidden', message: 'SchoolStaff access required' },
+      { status: 403 }
+    )
+  }
+
+  const { searchParams } = new URL(request.url)
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+  const rawLimit = parseInt(searchParams.get('limit') || '', 10)
+  const limit = clampPageSize(isNaN(rawLimit) ? null : rawLimit)
+  const schoolId = searchParams.get('schoolId')
+    ? parseInt(searchParams.get('schoolId')!, 10)
+    : undefined
+  const transactionType = searchParams.get('transactionType') || undefined
+
+  const where: Record<string, unknown> = {}
+
+  if (schoolId) {
+    where.itemType = { schoolId }
+  }
+
+  if (transactionType) {
+    where.transactionType = transactionType
+  }
+
+  const [transactions, total] = await Promise.all([
+    prisma.transaction.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { transactionDate: 'desc' },
+      include: {
+        itemType: {
+          select: {
+            id: true,
+            school: { select: { id: true, schoolName: true } },
+            category: { select: { id: true, categoryName: true } },
+            primaryColour: { select: { id: true, colourName: true, hexcode: true } },
+          },
+        },
+        sizeOption: {
+          select: { id: true, sizeName: true, sizeClass: true },
+        },
+        donationDrive: {
+          select: { id: true, driveName: true },
+        },
+        user: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+      },
+    }),
+    prisma.transaction.count({ where }),
+  ])
+
+  return NextResponse.json({
+    data: transactions,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  })
+}
 
 /**
  * POST /api/inventory/transactions - Create a transaction with state validation and atomic balance update.

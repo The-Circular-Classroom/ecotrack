@@ -20,9 +20,7 @@ const emptyCategoryRow = () => ({ name: "", weightKg: "" });
 const emptyTagRow = () => ({ name: "", isActive: true });
 
 const getApiUrl = () => '';
-const getAuthHeader = () => ({
-  Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-});
+const getAuthHeader = () => ({});
 
 // ── CategoryTagFormModal ──────────────────────────────────────────────────────
 export default function CategoryTagFormModal({

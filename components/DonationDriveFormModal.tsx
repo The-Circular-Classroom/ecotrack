@@ -106,9 +106,7 @@ export default function DonationDriveFormModal({ isAdmin, onClose, editData = nu
         const fetchSchools = async () => {
             try {
                 const apiUrl = '';
-                const res = await fetch(`${apiUrl}/api/schools`, {
-                    headers: { Authorization: `Bearer ${sessionStorage.getItem('accessToken')}` },
-                });
+                const res = await fetch(`${apiUrl}/api/schools`);
                 const result = await res.json();
                 const normalizedSchools = (result.data || [])
                     .map((school) => ({
@@ -182,7 +180,6 @@ export default function DonationDriveFormModal({ isAdmin, onClose, editData = nu
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`,
                 },
                 body: JSON.stringify({
                     drive_name: form.driveName,

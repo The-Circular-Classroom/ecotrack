@@ -517,14 +517,7 @@ export default function TransactionPage() {
     try {
       setLoading(true);
 
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/inventory/transactions?page=${page + 1}&limit=${pageSize}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
-          }
-        }
-      );
+      const response = await fetch(`/api/inventory/transactions?page=${page + 1}&limit=${pageSize}`);
 
       if (!response.ok) throw new Error('Failed to fetch transactions');
 
@@ -558,14 +551,7 @@ export default function TransactionPage() {
 
     try {
       setDetailLoading(true);
-      const apiUrl = '';
-      const res = await fetch(`${apiUrl}/api/inventory/item-types/${itemTypeId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`,
-          }
-        }
-      );
+      const res = await fetch(`/api/inventory/item-types/${itemTypeId}`);
       if (!res.ok) throw new Error('Failed to fetch item type');
       const result = await res.json();
       setItemTypeDetail(result);

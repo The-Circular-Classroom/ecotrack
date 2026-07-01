@@ -387,7 +387,6 @@ export default function DonationDrivePage() {
   const [userId, setUserId] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
-  const token = () => sessionStorage.getItem("accessToken");
   
   // Determine role and resolve school ID / user ID from /api/users/me
   useEffect(() => {

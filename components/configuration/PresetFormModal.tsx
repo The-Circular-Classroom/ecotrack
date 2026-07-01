@@ -13,15 +13,8 @@ import CustomButton from "@/components/ui/CustomButton";
 
 const API_URL = '';
 
-const getToken = () => {
-  if (typeof window === "undefined") return "";
-  return sessionStorage.getItem("accessToken");
-};
-
 const apiFetch = (path) =>
-  fetch(`${API_URL}/api/${path}`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  }).then((res) => {
+  fetch(`${API_URL}/api/${path}`).then((res) => {
     if (!res.ok) throw new Error(`Failed to fetch ${path}`);
     return res.json().then((d) => d.data);
   });
@@ -421,9 +414,6 @@ export default function PresetForm({ onClose, editData }) {
           : `${API_URL}/api/inventory/item-types`,
         {
           method: isEditing ? "PATCH" : "POST",
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-          },
           body: payload,
         },
       );

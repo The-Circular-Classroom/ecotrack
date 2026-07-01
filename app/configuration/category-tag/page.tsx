@@ -23,9 +23,7 @@ import CategoryTagFormModal from "@/components/configuration/CategoryTagFormModa
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 const getApiUrl = () => '';
-const getAuthHeader = () => ({
-  Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-});
+const getAuthHeader = () => ({});
 
 const dataGridSx = {
   border: "none",

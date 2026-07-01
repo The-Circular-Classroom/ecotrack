@@ -23,9 +23,7 @@ import CPMFormModal from "@/components/configuration/CPMFormModal";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 const getApiUrl = () => '';
-const getAuthHeader = () => ({
-  Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
-});
+const getAuthHeader = () => ({});
 const isValidHex = (hex) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 
 const dataGridSx = {
