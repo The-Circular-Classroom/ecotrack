@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     logger.warn('Missing authorization code');
-    return NextResponse.redirect(new URL('/login?error=missing_code', origin))
+    return NextResponse.redirect(new URL('/auth/login?error=missing_code', origin))
   }
 
   const cookieStore = await cookies()
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     logger.error('Code exchange failed', { error: error.message });
     return NextResponse.redirect(
-      new URL('/login?error=auth_callback_failed', origin)
+      new URL('/auth/login?error=auth_callback_failed', origin)
     )
   }
 

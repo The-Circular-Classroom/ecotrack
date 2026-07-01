@@ -2,8 +2,12 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = [
-  '/login',
-  '/register',
+  '/auth/login',
+  '/auth/signup',
+  '/auth/forgot-password',
+  '/auth/forget-password',
+  '/auth/reset-password',
+  '/auth/set-new-password',
   '/api/health',
   '/api/auth/login',
   '/api/auth/register',
@@ -12,9 +16,6 @@ const PUBLIC_PATHS = [
   '/api/auth/signup',
   '/api/auth/forgot-password',
   '/api/auth/set-new-password',
-  '/forgot-password',
-  '/mfa',
-  '/set-new-password',
 ]
 
 export async function proxy(request: NextRequest) {
@@ -62,7 +63,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     // For page requests, redirect to login
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
   // Look up the user's role from the users table (canonical source)
