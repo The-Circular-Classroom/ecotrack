@@ -19,7 +19,7 @@ const TYPES = ["Colour", "Pattern", "Material"];
 const emptyColourRow = () => ({ name: "", hexcode: "#" });
 const emptyNameRow = () => ({ name: "" });
 
-const getApiUrl = () => process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const getApiUrl = () => '';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
 });

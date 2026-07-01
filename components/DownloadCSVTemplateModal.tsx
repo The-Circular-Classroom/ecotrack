@@ -42,8 +42,8 @@ function getSchoolOptionId(school) {
 }
 
 export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
-  const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
-  const apiAuthUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+  const apiUrl = '';
+  const apiAuthUrl = '';
 
   const [loadingInit, setLoadingInit] = useState(false);
   const [initError, setInitError] = useState("");
@@ -92,7 +92,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
     try {
       const accessToken = token();
       const [analyticsRes, inventoryRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_ANALYTICS_API_URL}/api/school`, {
+        fetch(`/api/school`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         }),
         fetch(`${apiUrl}/api/inventory/balances`, {
@@ -180,7 +180,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
 
       if (!resolvedSchool) {
         const analyticsApiUrl =
-          process.env.NEXT_PUBLIC_ANALYTICS_API_URL;
+          '';
         const schoolRes = await fetch(
           `${analyticsApiUrl}/api/school/${schoolIdFromProfile}/profile`,
           {

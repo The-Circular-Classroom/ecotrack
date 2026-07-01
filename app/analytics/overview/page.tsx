@@ -480,10 +480,6 @@ export default function OverallAnalyticsPage() {
     let cancelled = false;
 
     async function run() {
-      if (!analyticsApiUrl) {
-        if (!cancelled) { setLoadingSnapshot(false); setSnapshotErrors(['`NEXT_PUBLIC_ANALYTICS_API_URL` is not configured.']); }
-        return;
-      }
       const token = sessionStorage.getItem('accessToken');
       if (!cancelled) setLoadingSnapshot(true);
 

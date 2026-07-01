@@ -23,7 +23,7 @@ import CustomErrorButton from "@/components/ui/CustomErrorButton";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const API_URL = '';
 
 const SIZE_TYPE_CHIP_STYLE = {
   Alphabetical: { backgroundColor: "#dcfce7", color: "#166534" },

@@ -19,7 +19,7 @@ const TYPES = ["Category", "Tag"];
 const emptyCategoryRow = () => ({ name: "", weightKg: "" });
 const emptyTagRow = () => ({ name: "", isActive: true });
 
-const getApiUrl = () => process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const getApiUrl = () => '';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
 });

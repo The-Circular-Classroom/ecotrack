@@ -11,7 +11,7 @@ import CustomButton from "@/components/ui/CustomButton";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const API_URL = '';
 
 const getToken = () => {
   if (typeof window === "undefined") return "";

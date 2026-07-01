@@ -105,7 +105,7 @@ export default function DonationDriveFormModal({ isAdmin, onClose, editData = nu
     useEffect(() => {
         const fetchSchools = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_ANALYTICS_API_URL;
+                const apiUrl = '';
                 const res = await fetch(`${apiUrl}/api/school`, {
                     headers: { Authorization: `Bearer ${sessionStorage.getItem('accessToken')}` },
                 });
@@ -172,7 +172,7 @@ export default function DonationDriveFormModal({ isAdmin, onClose, editData = nu
 
         setSubmitting(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+            const apiUrl = '';
             const url = editData
                 ? `${apiUrl}/api/donation-drive/${editData.id}`
                 : `${apiUrl}/api/donation-drive`;

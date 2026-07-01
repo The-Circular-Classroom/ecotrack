@@ -53,7 +53,7 @@ export default function SchoolItemTypesContent() {
     severity: "success",
   });
 
-  const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+  const apiUrl = '';
 
   useEffect(() => {
     setRole(getRoleFromSession());

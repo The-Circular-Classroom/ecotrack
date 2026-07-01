@@ -418,7 +418,7 @@ export default function FileApprovalPage() {
     severity: 'success',
   });
 
-  const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+  const apiUrl = '';
 
   const fetchValidatedFiles = useCallback(async () => {
     if (!apiUrl) {

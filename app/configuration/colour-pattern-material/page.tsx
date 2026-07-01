@@ -22,8 +22,7 @@ import CustomErrorButton from "@/components/ui/CustomErrorButton";
 import CPMFormModal from "@/components/configuration/CPMFormModal";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
-const getApiUrl = () =>
-  process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const getApiUrl = () => '';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
 });

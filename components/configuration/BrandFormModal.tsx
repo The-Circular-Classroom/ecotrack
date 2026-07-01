@@ -13,7 +13,7 @@ import CustomButton from "@/components/ui/CustomButton";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const API_URL = '';
 
 const SIZE_TYPE_OPTIONS = [
   { value: "Alphabetical", label: "Alphabetical" },

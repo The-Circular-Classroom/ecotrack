@@ -22,7 +22,7 @@ import CustomErrorButton from "@/components/ui/CustomErrorButton";
 import CategoryTagFormModal from "@/components/configuration/CategoryTagFormModal";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
-const getApiUrl = () => process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+const getApiUrl = () => '';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${sessionStorage.getItem("accessToken")}`,
 });
@@ -426,7 +426,7 @@ export default function CategoryTagPage() {
 
   // ── Fetch user profile ────────────────────────────────────────────────────
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const apiUrl = '';
     fetch(`${apiUrl}/api/users/me`, {
       headers: getAuthHeader(),
     })

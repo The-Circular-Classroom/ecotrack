@@ -195,7 +195,7 @@ export default function PresetPage() {
         try {
             setLoading(true);
 
-            const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+            const apiUrl = '';
             const response = await fetch(`${apiUrl}/api/item-type/preset`,
                 {
                     headers: {
@@ -235,7 +235,7 @@ export default function PresetPage() {
         if (!deleteRow) return;
         setDeleteLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+            const apiUrl = '';
             const response = await fetch(`${apiUrl}/api/item-type/preset/${deleteRow.item_type_id}`, {
                 method: 'DELETE',
                 headers: {

@@ -517,7 +517,7 @@ export default function TransactionPage() {
     try {
       setLoading(true);
 
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
       const response = await fetch(`${apiUrl}/api/transaction?page=${page + 1}&limit=${pageSize}`,
         {
           headers: {
@@ -558,7 +558,7 @@ export default function TransactionPage() {
 
     try {
       setDetailLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
       const res = await fetch(`${apiUrl}/api/item-type/${itemTypeId}`,
         {
           headers: {

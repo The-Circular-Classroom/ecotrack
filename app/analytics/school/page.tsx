@@ -321,7 +321,7 @@ function AnalyticsSectionSkeleton({ title, subtitle, height = 280, compact = fal
 
 export default function SchoolAnalyticsPage() {
   const analyticsApiUrl = getAnalyticsApiUrl();
-  const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+  const authApiUrl = '';
   const currentYear = new Date().getFullYear();
 
   const [role] = useState(() => getRoleFromSession() || 'UNKNOWN');

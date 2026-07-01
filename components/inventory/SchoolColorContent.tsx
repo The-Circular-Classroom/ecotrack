@@ -25,7 +25,7 @@ export default function SchoolCategoryContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+  const apiUrl = '';
   const categoryLabel = useMemo(() => slugToLabel(categorySlug), [categorySlug]);
 
   useEffect(() => { setRole(getRoleFromSession()); }, []);

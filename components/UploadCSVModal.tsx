@@ -848,7 +848,7 @@ export default function UploadCSVModal({ isOpen, onClose, selectedSchool }) {
       const formData = new FormData();
       formData.append('file', uploadFile);
 
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
       
 
       const progressInterval = setInterval(() => {

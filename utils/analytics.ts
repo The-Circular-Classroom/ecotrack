@@ -52,7 +52,7 @@ async function fetchJson(url, { token, signal } = {}) {
 }
 
 export function getAnalyticsApiUrl() {
-  return process.env.NEXT_PUBLIC_ANALYTICS_API_URL;
+  return '';
 }
 
 export async function fetchCollectionInventoryCount(apiUrl, options = {}) {

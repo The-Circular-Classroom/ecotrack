@@ -402,7 +402,7 @@ export default function DonationDrivePage() {
     const admin = role === "TCC_ADMIN";
     if (admin) setIsAdmin(true);
 
-    const apiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const apiUrl = '';
 
     fetch(`${apiUrl}/api/users/me`, {
       headers: { Authorization: `Bearer ${token()}` },
@@ -435,7 +435,7 @@ export default function DonationDrivePage() {
     try {
       setLoading(true);
 
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
 
       // Admins fetch all drives; non-admins fetch only their school's
       const url = isAdmin
@@ -482,7 +482,7 @@ export default function DonationDrivePage() {
     if (!deleteRow) return;
     setDeleteLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
       const response = await fetch(
         `${apiUrl}/api/donation-drive/${deleteRow.id}`,
         {

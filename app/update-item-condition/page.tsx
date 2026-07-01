@@ -56,7 +56,7 @@ export default function UpdateItemCondition() {
     const admin = role === "TCC_ADMIN";
     if (admin) setIsAdmin(true);
 
-    const apiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const apiUrl = '';
     fetch(`${apiUrl}/api/users/me`, {
       headers: { Authorization: `Bearer ${token()}` },
     })
@@ -85,7 +85,7 @@ export default function UpdateItemCondition() {
   const fetchAllInventoryItems = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
 
       const response = await fetch(`${apiUrl}/api/inventory`, {
         headers: {
@@ -190,7 +190,7 @@ export default function UpdateItemCondition() {
   const handleConfirmChanges = async () => {
     try {
       setConfirmChangesLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+      const apiUrl = '';
 
       const itemsToUpdate = selectedItems.map((item) => ({
         inventory_id: item.id,

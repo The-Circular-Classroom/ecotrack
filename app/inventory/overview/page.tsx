@@ -83,8 +83,8 @@ export default function InventoryOverviewPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const inventoryApiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
-  const analyticsApiUrl = process.env.NEXT_PUBLIC_ANALYTICS_API_URL;
+  const inventoryApiUrl = '';
+  const analyticsApiUrl = '';
 
   useEffect(() => {
     setRole(getRoleFromSession());

@@ -46,7 +46,7 @@ export default function SchoolCategoryColorContent() {
   const [itemDetailsSubmitting, setItemDetailsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  const apiUrl = process.env.NEXT_PUBLIC_INVENTORY_API_URL;
+  const apiUrl = '';
   const categoryLabel = useMemo(() => slugToLabel(categorySlug), [categorySlug]);
   const colorLabel = useMemo(() => colorSlugToLabel(colorSlug), [colorSlug]);
 
