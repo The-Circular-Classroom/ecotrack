@@ -163,7 +163,7 @@ export async function fetchSchoolCollaborations(apiUrl, schoolId, options = {}) 
 }
 
 export async function fetchSchoolProductsCreated(apiUrl, schoolId, options = {}) {
-  return fetchJson(`${apiUrl}/api/schools/${schoolId}/products`, options);
+  return fetchJson(`${apiUrl}/api/school/${schoolId}/products`, options);
 }
 
 // ── Builder functions ─────────────────────────────────────────────────────────
