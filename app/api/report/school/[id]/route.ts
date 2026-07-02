@@ -75,12 +75,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Fetch report data in parallel (filtered by schoolId where applicable)
     const [
       inventoryTotals,
+      inventoryBySchool,
       inventoryByCategory,
       yearlyTrends,
       schoolRankings,
       sustainability,
     ] = await Promise.all([
       fetchInventoryTotals(schoolId),
+      fetchInventoryBySchool(schoolName, schoolId),
       fetchInventoryByCategory(schoolId),
       fetchYearlyTrends(year, schoolId),
       fetchSchoolRankings(year), // System-wide for context
@@ -89,9 +91,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Generate PDF
     const pdfBuffer = await generatePdf({
-      schoolName,
       year,
       inventoryTotals,
+      inventoryBySchool,
       inventoryByCategory,
       yearlyTrends,
       schoolRankings,
@@ -120,6 +122,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // ─── Data fetchers ────────────────────────────────────────────────────────────
+
+interface SchoolBreakdown {
+  schoolName: string
+  totalItems: number
+  totalWeightKg: number
+}
+
+async function fetchInventoryBySchool(schoolName: string, schoolId: number): Promise<SchoolBreakdown[]> {
+  const totals = await fetchInventoryTotals(schoolId)
+  return [{
+    schoolName,
+    totalItems: totals.totalItems,
+    totalWeightKg: totals.totalWeightKg,
+  }]
+}
 
 interface InventoryTotals {
   totalItems: number
@@ -352,9 +369,9 @@ async function fetchSustainability(year: number, schoolId: number): Promise<Sust
 // ─── PDF Generation ───────────────────────────────────────────────────────────
 
 interface ReportData {
-  schoolName: string
   year: number
   inventoryTotals: InventoryTotals
+  inventoryBySchool: SchoolBreakdown[]
   inventoryByCategory: CategoryBreakdown[]
   yearlyTrends: YearTrend[]
   schoolRankings: SchoolRanking[]
@@ -367,9 +384,9 @@ async function generatePdf(data: ReportData): Promise<Buffer> {
       size: 'A4',
       margin: 50,
       info: {
-        Title: `EcoTrack School Report ${data.year} - ${data.schoolName}`,
+        Title: `EcoTrack Report ${data.year}`,
         Author: 'EcoTrack Platform',
-        Subject: 'School Inventory and Sustainability Report',
+        Subject: 'Inventory and Sustainability Report',
       },
     })
 
@@ -380,12 +397,9 @@ async function generatePdf(data: ReportData): Promise<Buffer> {
 
     // ─── Title Page ─────────────────────────────────────────────────────────
     doc.fontSize(24).font('Helvetica-Bold').fillColor('#213c2d')
-    doc.text('EcoTrack School Report', { align: 'center' })
-    doc.moveDown(0.3)
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#111827')
-    doc.text(data.schoolName, { align: 'center' })
-    doc.moveDown(0.3)
-    doc.fontSize(12).font('Helvetica').fillColor('#6b7280')
+    doc.text('EcoTrack Platform Report', { align: 'center' })
+    doc.moveDown(0.5)
+    doc.fontSize(14).font('Helvetica').fillColor('#6b7280')
     doc.text(`Year: ${data.year}`, { align: 'center' })
     doc.text(`Generated: ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}`, { align: 'center' })
     doc.moveDown(2)
@@ -395,6 +409,29 @@ async function generatePdf(data: ReportData): Promise<Buffer> {
     doc.fontSize(10).font('Helvetica').fillColor('#111827')
     doc.text(`Total Items on Hand: ${fmtNum(data.inventoryTotals.totalItems)}`)
     doc.text(`Total Estimated Weight: ${fmtWeight(data.inventoryTotals.totalWeightKg)}`)
+    doc.moveDown(1)
+
+    // ─── Inventory Breakdown by School ──────────────────────────────────────
+    sectionTitle(doc, 'Inventory by School')
+    if (data.inventoryBySchool.length === 0) {
+      doc.fontSize(9).font('Helvetica').fillColor('#6b7280')
+      doc.text('No inventory data available.')
+    } else {
+      // Table header
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#213c2d')
+      doc.text('School', 50, doc.y, { continued: true, width: 200 })
+      doc.text('Items', 260, doc.y, { continued: true, width: 80, align: 'right' })
+      doc.text('Weight (kg)', 350, doc.y, { width: 80, align: 'right' })
+      doc.moveDown(0.3)
+      drawLine(doc)
+
+      for (const school of data.inventoryBySchool.slice(0, 20)) {
+        doc.fontSize(8).font('Helvetica').fillColor('#111827')
+        doc.text(school.schoolName, 50, doc.y, { continued: true, width: 200 })
+        doc.text(fmtNum(school.totalItems), 260, doc.y, { continued: true, width: 80, align: 'right' })
+        doc.text(fmtWeight(school.totalWeightKg), 350, doc.y, { width: 80, align: 'right' })
+      }
+    }
     doc.moveDown(1)
 
     // ─── Inventory Breakdown by Category ────────────────────────────────────
@@ -462,10 +499,9 @@ async function generatePdf(data: ReportData): Promise<Buffer> {
 
       for (let i = 0; i < Math.min(data.schoolRankings.length, 20); i++) {
         const school = data.schoolRankings[i]
-        const isCurrentSchool = school.schoolName === data.schoolName
-        doc.fontSize(8).font(isCurrentSchool ? 'Helvetica-Bold' : 'Helvetica').fillColor(isCurrentSchool ? '#1d4ed8' : '#111827')
+        doc.fontSize(8).font('Helvetica').fillColor('#111827')
         doc.text(String(i + 1), 50, doc.y, { continued: true, width: 25 })
-        doc.text(school.schoolName + (isCurrentSchool ? ' (Your School)' : ''), 75, doc.y, { continued: true, width: 170 })
+        doc.text(school.schoolName, 75, doc.y, { continued: true, width: 170 })
         doc.text(fmtNum(school.totalDonated), 250, doc.y, { continued: true, width: 65, align: 'right' })
         doc.text(fmtNum(school.totalSold), 320, doc.y, { continued: true, width: 60, align: 'right' })
         doc.text(`${school.redistributionRate}%`, 390, doc.y, { width: 55, align: 'right' })

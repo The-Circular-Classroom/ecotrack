@@ -376,7 +376,7 @@ async function generatePdf(data: ReportData): Promise<Buffer> {
       size: 'A4',
       margin: 50,
       info: {
-        Title: `EcoTrack Admin Report ${data.year}`,
+        Title: `EcoTrack Report ${data.year}`,
         Author: 'EcoTrack Platform',
         Subject: 'Inventory and Sustainability Report',
       },
@@ -389,7 +389,7 @@ async function generatePdf(data: ReportData): Promise<Buffer> {
 
     // ─── Title Page ─────────────────────────────────────────────────────────
     doc.fontSize(24).font('Helvetica-Bold').fillColor('#213c2d')
-    doc.text('EcoTrack Platform Admin Report', { align: 'center' })
+    doc.text('EcoTrack Platform Report', { align: 'center' })
     doc.moveDown(0.5)
     doc.fontSize(14).font('Helvetica').fillColor('#6b7280')
     doc.text(`Year: ${data.year}`, { align: 'center' })
