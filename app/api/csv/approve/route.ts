@@ -65,6 +65,32 @@ export async function POST(request: NextRequest) {
 
   // Download file from Supabase Storage
   const supabase = await createSupabaseServerClient()
+
+  // Try calling the Supabase Edge Function first
+  if (typeof supabase.functions?.invoke === 'function') {
+    const { data, error } = await supabase.functions.invoke('csv-processing', {
+      body: { action: 'approve', filePath, approverUserId: userId },
+    })
+
+    if (!error && data) {
+      if (data.error === 'processing_failed') {
+        return NextResponse.json(
+          { error: 'processing_failed', message: data.message },
+          { status: 500 }
+        )
+      }
+      return NextResponse.json(data, { status: 200 })
+    }
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'function_failed', message: error.message },
+        { status: 500 }
+      )
+    }
+  }
+
+  // Fallback to local processing if Supabase function invoker is not defined (e.g. in tests)
   const { data: fileData, error: downloadError } = await supabase.storage
     .from('donations')
     .download(filePath)
