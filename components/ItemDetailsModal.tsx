@@ -364,7 +364,7 @@ export default function ItemDetailsModal({
               <label className={labelCls}>Image</label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 min-h-[260px] flex items-center justify-center overflow-hidden relative">
                 {imageUrl ? (
-                  <Image src={imageUrl} alt={selectedCategoryName || 'Item'} fill className="object-contain p-3" />
+                  <Image src={imageUrl} alt={selectedCategoryName || 'Item'} fill unoptimized className="object-contain p-3" />
                 ) : (
                   <span className="text-gray-400 text-sm text-center px-4">
                     {selectedCategoryName ? 'No image for this category' : 'Select a category to see its image'}

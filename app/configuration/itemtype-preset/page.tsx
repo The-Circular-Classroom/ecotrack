@@ -4,6 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLayoutLoading } from '@/app/configuration/layout';
 import Image from 'next/image';
+import { getUniformImageUrl } from '@/lib/inventory/uniformImageUrl';
 
 // mui
 import { Backdrop, Tooltip, Chip, Box, Typography, Alert, Button } from '@mui/material';
@@ -37,6 +38,7 @@ const buildColumns = (onEdit, onDelete) => [
                     alt={row.category_name || 'preview'}
                     width={48}
                     height={48}
+                    unoptimized
                     style={{ objectFit: 'contain', borderRadius: 4 }}
                 />
             </Box>
@@ -203,10 +205,17 @@ export default function PresetPage() {
             const result = await response.json();
             const rawPresets = result.itemTypes || result.data || [];
 
-            const mappedPresets = rawPresets.map((item: any) => ({
+            const mappedPresets = rawPresets.map((item: any) => {
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+                const resolvedImageUrl = item.imageUrl || getUniformImageUrl(
+                    supabaseUrl,
+                    item.category?.categoryName ?? null,
+                    item.primaryColour?.colourName ?? null
+                );
+                return {
                 id: item.id,
                 item_type_id: item.id,
-                image_url: item.imageUrl,
+                image_url: resolvedImageUrl,
                 school_name: item.school?.schoolName || '',
                 category_name: item.category?.categoryName || '',
                 colour_name: item.primaryColour?.colourName || '',
@@ -221,7 +230,8 @@ export default function PresetPage() {
                 sizeCategoryId: item.sizeCategoryId,
                 createdDate: item.createdDate,
                 lastUpdated: item.createdDate, // fallback
-            }));
+                };
+            });
 
             const sortedData = mappedPresets.sort((a, b) =>
                 new Date(b.createdDate) - new Date(a.createdDate)

@@ -119,7 +119,7 @@ export default function InventoryOverviewCard({ items = [], selectedItemType, se
                 {/* Image */}
                 <div className="relative w-28 h-28 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                     {imageUrl ? (
-                        <Image src={imageUrl} alt={categoryName} fill className="object-contain" sizes="112px" />
+                        <Image src={imageUrl} alt={categoryName} fill unoptimized className="object-contain" sizes="112px" />
                     ) : (
                         <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
                             <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

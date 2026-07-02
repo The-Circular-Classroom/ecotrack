@@ -58,6 +58,7 @@ export default function UniformOverviewCard({ itemType, onClick }) {
               src={multiImageUrl}
               alt={itemType?.displayLabel || ''}
               fill
+              unoptimized
               className="object-contain p-6 bg-white"
             />
           ) : (
@@ -93,6 +94,7 @@ export default function UniformOverviewCard({ itemType, onClick }) {
             src={singleImageUrl}
             alt={singleLabel}
             fill
+            unoptimized
             className="object-contain p-6 bg-white"
           />
         ) : (

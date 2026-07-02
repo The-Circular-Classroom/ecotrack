@@ -63,6 +63,7 @@ export default function InventoryBreakdownCard({ items = [], isAdmin, schoolLogo
                         alt="School"
                         width={28}
                         height={28}
+                        unoptimized
                         className="object-contain"
                     />
                 ) : (

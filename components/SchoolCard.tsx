@@ -21,6 +21,7 @@ export default function SchoolCard({ school, onClick }) {
             src={school.logoUrl}
             alt={school.schoolName}
             fill
+            unoptimized
             className="object-contain"
           />
         ) : (

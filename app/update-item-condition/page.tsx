@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getRoleFromSession } from "@/utils/auth";
+import { getUniformImageUrl } from "@/lib/inventory/uniformImageUrl";
 
 // mui
 import { Backdrop, Tooltip, Box, Typography } from "@mui/material";
@@ -97,6 +98,17 @@ export default function UpdateItemCondition() {
       const sortedData = (result.balances || []).sort(
         (a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated),
       );
+
+      // Client-side fallback: enrich imageUrl if the API didn't set it
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      sortedData.forEach((balance) => {
+        const itemType = balance?.itemType;
+        if (itemType && !itemType.imageUrl) {
+          const categoryName = itemType.category?.categoryName ?? null;
+          const colourName = itemType.primaryColour?.colourName ?? null;
+          itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName);
+        }
+      });
 
       setInventoryItems(sortedData);
       setError(null);
@@ -331,6 +343,7 @@ export default function UpdateItemCondition() {
               alt={row.itemType?.category?.categoryName || "preview"}
               width={48}
               height={48}
+              unoptimized
               style={{ objectFit: "contain", borderRadius: 4 }}
             />
           </Box>
@@ -595,6 +608,7 @@ export default function UpdateItemCondition() {
                           }
                           alt={item.itemType?.category?.categoryName || "Item"}
                           fill
+                          unoptimized
                           className="object-contain"
                         />
                       </div>

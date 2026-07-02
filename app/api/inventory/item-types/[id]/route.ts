@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
+import { getUniformImageUrl } from '@/lib/inventory/uniformImageUrl'
 
 /**
  * GET /api/inventory/item-types/[id] - Get a single item type.
@@ -33,8 +34,8 @@ export async function GET(
     include: {
       school: { select: { id: true, schoolName: true } },
       category: { select: { id: true, categoryName: true } },
-      primaryColour: { select: { id: true, colourName: true } },
-      secondaryColour: { select: { id: true, colourName: true } },
+      primaryColour: { select: { id: true, colourName: true, hexcode: true } },
+      secondaryColour: { select: { id: true, colourName: true, hexcode: true } },
       pattern: { select: { id: true, patternName: true } },
       material: { select: { id: true, materialName: true } },
       sizeCategory: {
@@ -54,7 +55,18 @@ export async function GET(
     )
   }
 
-  return NextResponse.json({ itemType })
+  // Enrich: compute imageUrl from storage when DB value is null
+  const enriched: any = { ...itemType }
+  if (!enriched.imageUrl) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+    enriched.imageUrl = getUniformImageUrl(
+      supabaseUrl,
+      itemType.category?.categoryName ?? null,
+      itemType.primaryColour?.colourName ?? null
+    )
+  }
+
+  return NextResponse.json({ itemType: enriched })
 }
 
 /**

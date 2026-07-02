@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth/roles'
 import { prisma } from '@/lib/prisma/client'
+import { getUniformImageUrl } from '@/lib/inventory/uniformImageUrl'
 
 /**
  * GET /api/inventory/balance - Overview endpoint returning inventory balances where quantity > 0.
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
           imageUrl: true,
           school: { select: { id: true, schoolName: true, logoUrl: true } },
           category: { select: { id: true, categoryName: true } },
-          primaryColour: { select: { id: true, colourName: true } },
+          primaryColour: { select: { id: true, colourName: true, hexcode: true } },
         },
       },
       sizeOption: {
@@ -70,8 +71,21 @@ export async function GET(request: NextRequest) {
     ],
   })
 
+  // Enrich balances: resolve imageUrl from storage when DB value is null
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const enrichedBalances = balances.map((balance) => {
+    const itemType = balance.itemType as any
+    if (itemType && !itemType.imageUrl) {
+      const categoryName = itemType.category?.categoryName ?? null
+      const colourName = itemType.primaryColour?.colourName ?? null
+      itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName)
+    }
+    return balance
+  })
+
   return NextResponse.json({
-    balances,
-    total: balances.length,
+    balances: enrichedBalances,
+    total: enrichedBalances.length,
   })
 }
+

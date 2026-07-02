@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getRoleFromSession } from "@/utils/auth";
 import { getCategoryOrder, getSubCategoryOrder } from "@/utils/categoryOrder";
+import { getUniformImageUrl } from "@/lib/inventory/uniformImageUrl";
 
 import { Box, Typography } from "@mui/material";
 import { FaPlus, FaCheck } from "react-icons/fa6";
@@ -116,6 +117,17 @@ export default function SchoolItemTypesContent() {
 
       const result = await res.json();
       const rows = result.balances || result.data || [];
+
+      // Client-side fallback: enrich imageUrl if the API didn't set it
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      rows.forEach((row) => {
+        const itemType = row?.itemType;
+        if (itemType && !itemType.imageUrl) {
+          const categoryName = itemType.category?.categoryName ?? null;
+          const colourName = itemType.primaryColour?.colourName ?? null;
+          itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName);
+        }
+      });
 
       const categoryMap = new Map();
       rows.forEach((row) => {

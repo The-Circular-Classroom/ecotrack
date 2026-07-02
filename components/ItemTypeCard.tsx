@@ -101,7 +101,7 @@ export default function ItemTypeCard({ itemType, isAdmin, onClick }) {
       {/* Item Image - Left Side */}
       <div className="flex-shrink-0 w-20 h-20 flex items-center justify-center relative">
         {itemType?.imageUrl ? (
-          <Image src={itemType.imageUrl} alt={categoryName} fill className="object-contain" />
+          <Image src={itemType.imageUrl} alt={categoryName} fill unoptimized className="object-contain" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg flex items-center justify-center">
             <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

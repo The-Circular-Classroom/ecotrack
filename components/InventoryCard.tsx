@@ -124,6 +124,7 @@ export default function InventoryCard({ item }) {
               src={itemType.imageUrl}
               alt={categoryName}
               fill
+              unoptimized
               className="object-contain"
               sizes="(max-width: 768px) 100vw, 25vw"
             />

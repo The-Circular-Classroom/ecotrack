@@ -23,6 +23,7 @@ import InventoryBalancePreviewModal from '@/components/InventoryBalancePreviewMo
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import CustomErrorButton from '@/components/ui/CustomErrorButton'
 import { parseApiResponse } from '@/utils/apiResponse'
+import { getUniformImageUrl } from '@/lib/inventory/uniformImageUrl'
 
 const toTitleCase = (str: string) => {
   if (!str) return str
@@ -252,7 +253,20 @@ export default function UniformOverviewPage() {
       if (!response.ok) throw new Error('Failed to fetch inventory data')
 
       const { payload } = await parseApiResponse(response)
-      setRows(payload.balances || [])
+      const balances = payload.balances || []
+
+      // Client-side fallback: enrich imageUrl if the API didn't set it
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      balances.forEach((balance: any) => {
+        const itemType = balance?.itemType
+        if (itemType && !itemType.imageUrl) {
+          const categoryName = itemType.category?.categoryName ?? null
+          const colourName = itemType.primaryColour?.colourName ?? null
+          itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName)
+        }
+      })
+
+      setRows(balances)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching uniform overview:', err)
