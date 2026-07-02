@@ -201,9 +201,30 @@ export default function PresetPage() {
             if (!response.ok) throw new Error('Failed to fetch item preset');
 
             const result = await response.json();
+            const rawPresets = result.itemTypes || result.data || [];
 
-            const sortedData = (result.data || []).sort((a, b) =>
-                new Date(b.lastUpdated) - new Date(a.lastUpdated)
+            const mappedPresets = rawPresets.map((item: any) => ({
+                id: item.id,
+                item_type_id: item.id,
+                image_url: item.imageUrl,
+                school_name: item.school?.schoolName || '',
+                category_name: item.category?.categoryName || '',
+                colour_name: item.primaryColour?.colourName || '',
+                hexcode: item.primaryColour?.hexcode || item.primaryColour?.hexCode || '',
+                gender: item.gender,
+                schoolId: item.schoolId,
+                categoryId: item.categoryId,
+                primaryColourId: item.primaryColourId,
+                secondaryColourId: item.secondaryColourId,
+                patternId: item.patternId,
+                materialId: item.materialId,
+                sizeCategoryId: item.sizeCategoryId,
+                createdDate: item.createdDate,
+                lastUpdated: item.createdDate, // fallback
+            }));
+
+            const sortedData = mappedPresets.sort((a, b) =>
+                new Date(b.createdDate) - new Date(a.createdDate)
             );
 
             setItemPreset(sortedData);
@@ -317,7 +338,7 @@ export default function PresetPage() {
                 <DataGrid
                     rows={itemPreset}
                     columns={columns}
-                    getRowId={(row) => `${row.item_type_id}-${row.size_name}-${row.hexcode}`}
+                    getRowId={(row) => `${row.item_type_id}-${row.hexcode}`}
                     slots={{ toolbar: GridToolbar }}
                     slotProps={{
                         toolbar: {

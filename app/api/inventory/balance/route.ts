@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           gender: true,
-          school: { select: { id: true, schoolName: true } },
+          imageUrl: true,
+          school: { select: { id: true, schoolName: true, logoUrl: true } },
           category: { select: { id: true, categoryName: true } },
           primaryColour: { select: { id: true, colourName: true } },
         },

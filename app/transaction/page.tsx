@@ -554,7 +554,7 @@ export default function TransactionPage() {
       const res = await fetch(`/api/inventory/item-types/${itemTypeId}`);
       if (!res.ok) throw new Error('Failed to fetch item type');
       const result = await res.json();
-      setItemTypeDetail(result);
+      setItemTypeDetail(result.itemType || result);
     } catch (err) {
       console.error('Error fetching item type details:', err);
     } finally {
