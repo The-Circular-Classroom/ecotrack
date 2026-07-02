@@ -55,7 +55,35 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ success: true, data: products })
+    const grouped: Record<number | string, {
+      school: { id: number | null; schoolName: string }
+      products: any[]
+    }> = {}
+
+    for (const product of products) {
+      const sid = product.school?.id ?? 'unknown'
+      if (!grouped[sid]) {
+        grouped[sid] = {
+          school: product.school ?? { id: null, schoolName: 'Unknown' },
+          products: []
+        }
+      }
+
+      const recipeCount = product.productStyles.reduce(
+        (sum, ps) => sum + ps.productRecipes.length,
+        0
+      )
+
+      grouped[sid].products.push({
+        id: product.id,
+        productName: product.productName,
+        productType: product.productType,
+        recipeCount,
+        productStyles: product.productStyles
+      })
+    }
+
+    return NextResponse.json({ success: true, data: Object.values(grouped) })
   } catch (error: any) {
     logger.error('Error fetching assembly products', { error: error.message })
     return NextResponse.json({ error: 'database_error', message: error.message }, { status: 500 })

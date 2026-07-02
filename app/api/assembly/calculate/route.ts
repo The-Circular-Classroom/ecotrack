@@ -88,12 +88,18 @@ export async function POST(request: NextRequest) {
 
     // Process plan items
     for (const item of plan.items) {
-      // Find schoolId for this product
-      const product = await prisma.product.findUnique({
-        where: { id: item.productStyleId }, // In Next.js projections, productStyleId is used
-        select: { schoolId: true }
+      // Find schoolId for this product style
+      const productStyle = await prisma.productStyle.findUnique({
+        where: { id: item.productStyleId },
+        select: {
+          productId: true,
+          product: {
+            select: { schoolId: true }
+          }
+        }
       })
-      const schoolId = product?.schoolId ?? 0
+      const productId = productStyle?.productId ?? item.productStyleId
+      const schoolId = productStyle?.product?.schoolId ?? 0
       const schoolObj = schools.find((s) => s.id === schoolId)
       const schoolName = schoolObj?.schoolName ?? 'Unknown School'
 
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
       }
 
       const mappedProduct = {
-        productId: item.productStyleId,
+        productId: productId,
         productName: item.productName,
         targetQuantity: item.requested,
         actualMade: item.planned,
