@@ -80,8 +80,6 @@ export default function Header() {
   }, [router])
 
   const retrieveUserDetails = useCallback(async () => {
-    if (hideHeaderUI) return
-
     try {
       const profile = await fetchUserProfile()
       if (profile) {
