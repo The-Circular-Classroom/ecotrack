@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Box, Typography, Card, CardActionArea, CardContent, Grid } from '@mui/material'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import GrassOutlinedIcon from '@mui/icons-material/GrassOutlined'
@@ -10,8 +10,18 @@ import NextLink from 'next/link'
 import { getRoleFromSession } from '@/utils/auth'
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
   const hour = new Date().getHours()
-  const userRole = typeof window !== 'undefined' ? getRoleFromSession() : 'UNKNOWN'
+  const userRole = getRoleFromSession() || 'UNKNOWN'
 
   const greeting =
     hour > 6 && hour < 12

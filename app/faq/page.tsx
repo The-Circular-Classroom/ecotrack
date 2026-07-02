@@ -416,7 +416,11 @@ function FAQSection({ section, openItems, onToggle, matchesSearch }) {
 export default function FAQPage() {
   const [openItems, setOpenItems] = useState({});
   const [search, setSearch] = useState('');
-  const [role, setRole] = useState(getRoleFromSession() || 'UNKNOWN');
+  const [role, setRole] = useState('UNKNOWN');
+
+  useEffect(() => {
+    setRole(getRoleFromSession() || 'UNKNOWN');
+  }, []);
 
   const isAdmin = role === 'TCC_ADMIN';
 

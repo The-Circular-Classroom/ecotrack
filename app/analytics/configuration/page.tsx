@@ -31,6 +31,11 @@ function createIngredientRow(overrides = {}) {
 }
 
 export default function AnalyticsConfigurationPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const pathname = usePathname();
 
   const [role] = useState(() => getRoleFromSession() || 'UNKNOWN');
@@ -810,6 +815,10 @@ export default function AnalyticsConfigurationPage() {
   const removeIngredientRow = useCallback((rowId) => {
     setIngredientRows((prev) => (prev.length === 1 ? prev : prev.filter((row) => row.rowId !== rowId)));
   }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   if (role === 'UNKNOWN') {
     return (

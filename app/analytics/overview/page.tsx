@@ -402,6 +402,11 @@ function truncateLabel(str, maxLength = 15) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OverallAnalyticsPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const analyticsApiUrl = getAnalyticsApiUrl();
   const currentYear = new Date().getFullYear();
   const initialSettings = useMemo(() => getInitialSettings(), []);
@@ -1256,6 +1261,10 @@ export default function OverallAnalyticsPage() {
     } catch (err) {
       console.error('Report download failed:', err);
     }
+  }
+
+  if (!mounted) {
+    return null;
   }
 
   return (

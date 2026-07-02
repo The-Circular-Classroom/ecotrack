@@ -472,6 +472,11 @@ function SchoolResultCard({ schoolResult, colorOffset }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function RepurposingPlannerPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Derive role synchronously on first render — avoids a setState-in-effect lint error
   const [role] = useState(() => getRoleFromSession() || 'UNKNOWN');
   const [schoolGroups, setSchoolGroups] = useState([]);
@@ -601,6 +606,11 @@ export default function RepurposingPlannerPage() {
   const usedSchoolIds = plansBySchool.map((p) => p.schoolId).filter(Boolean);
 
   // ── Access guards ──────────────────────────────────────────────────────
+
+  if (!mounted) {
+    return null;
+  }
+
   if (role === 'UNKNOWN') {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">

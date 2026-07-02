@@ -2,7 +2,7 @@
 // apps/frontend/src/components/AnalyticsNav.js
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Tabs, Tab, Box } from '@mui/material';
 import { getRoleFromSession } from '@/utils/auth';
@@ -22,7 +22,13 @@ function normalizePath(p) {
 export default function AnalyticsNav() {
   const pathnameRaw = usePathname();
   const router = useRouter();
-  const role = getRoleFromSession() || 'UNKNOWN';
+  const [role, setRole] = useState('UNKNOWN');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setRole(getRoleFromSession() || 'UNKNOWN');
+  }, []);
 
   const tabs = useMemo(
     () => ALL_TABS.filter((t) => !t.adminOnly || role === 'TCC_ADMIN'),
@@ -44,6 +50,10 @@ export default function AnalyticsNav() {
     },
     [router],
   );
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <Box

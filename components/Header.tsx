@@ -38,7 +38,8 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
-  const role = getRoleFromSession()
+  const [role, setRole] = useState('UNKNOWN')
+  const [mounted, setMounted] = useState(false)
 
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState('Something went wrong')
@@ -46,6 +47,11 @@ export default function Header() {
   const [userFullName, setUserFullName] = useState('Guest')
   const [schoolLogoUrl, setSchoolLogoUrl] = useState<string | null>(null)
   const [schoolName, setSchoolName] = useState('')
+
+  useEffect(() => {
+    setMounted(true)
+    setRole(getRoleFromSession())
+  }, [])
 
   const hideHeaderUI = useMemo(() => {
     if (!pathname) return false
@@ -71,6 +77,7 @@ export default function Header() {
       setUserFullName('Guest')
       setSchoolLogoUrl(null)
       setSchoolName('')
+      setRole('UNKNOWN')
       router.push('/auth/login')
     } catch (error: any) {
       setMessage(error?.message || 'Failed to logout')
@@ -88,14 +95,17 @@ export default function Header() {
           setSchoolName(profile.school.name || '')
           setSchoolLogoUrl(`/api/school/${profile.school.id}/logo`)
         }
+        setRole(getRoleFromSession())
       } else {
         setUserFullName('Guest')
+        setRole('UNKNOWN')
         if (!pathname?.startsWith('/auth') && pathname !== '/') {
           router.push('/auth/login')
         }
       }
     } catch (error: any) {
       setUserFullName('Guest')
+      setRole('UNKNOWN')
       setMessage(error?.message || 'Failed to load user session')
       setSeverity('error')
       setOpen(true)
@@ -131,7 +141,7 @@ export default function Header() {
             {/* Logo + Module Switcher */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                {!hideHeaderUI && role !== 'UNKNOWN' ? (
+                {mounted && !hideHeaderUI && role !== 'UNKNOWN' ? (
                   <Link href="/">
                     <Image
                       src="/images/Logo-Symbol-green.png"
@@ -152,7 +162,7 @@ export default function Header() {
                 )}
               </div>
 
-              {!hideHeaderUI && role !== 'UNKNOWN' && (
+              {mounted && !hideHeaderUI && role !== 'UNKNOWN' && (
                 <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-0.5">
                   {APPS.map((app) => {
                     const isActive = app.key === currentApp.key

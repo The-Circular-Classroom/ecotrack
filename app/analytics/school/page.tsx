@@ -320,6 +320,11 @@ function AnalyticsSectionSkeleton({ title, subtitle, height = 280, compact = fal
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SchoolAnalyticsPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const analyticsApiUrl = getAnalyticsApiUrl();
   const authApiUrl = '';
   const currentYear = new Date().getFullYear();
@@ -603,6 +608,10 @@ export default function SchoolAnalyticsPage() {
     } catch (err) {
       console.error('Report download failed:', err);
     }
+  }
+
+  if (!mounted) {
+    return null;
   }
 
   return (
