@@ -141,7 +141,7 @@ export default function Header() {
             {/* Logo + Module Switcher */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                {mounted && !hideHeaderUI && role !== 'UNKNOWN' ? (
+                {mounted && role !== 'UNKNOWN' ? (
                   <Link href="/">
                     <Image
                       src="/images/Logo-Symbol-green.png"
