@@ -69,13 +69,18 @@ export async function POST(request: NextRequest) {
     const authByEmail = new Map(authUsers.map((u) => [u.email?.toLowerCase(), u]))
 
     const dbById = new Map(dbUsers.map((u) => [u.supabaseAuthId, u]))
-    const dbByEmail = new Map(dbUsers.map((u) => [u.email.toLowerCase(), u]))
+    const dbByEmail = new Map(
+      dbUsers
+        .filter((u) => u.email)
+        .map((u) => [u.email.toLowerCase(), u])
+    )
 
     let dbCreated = 0
     let dbUpdated = 0
     let supabaseCreated = 0
     let supabaseUpdated = 0
     let supabaseDisabled = 0
+    const errors: Array<{ authId?: string; email?: string; error: string }> = []
 
     // --- PHASE A: Sync from Supabase Auth to DB ---
     for (const au of authUsers) {
@@ -108,6 +113,11 @@ export async function POST(request: NextRequest) {
           logger.info('Created missing DB user from Auth', { email: au.email })
         } catch (dbErr: any) {
           logger.error('Failed to create DB user during sync', { email: au.email, error: dbErr.message })
+          errors.push({
+            authId: au.id,
+            email: au.email,
+            error: dbErr.message,
+          })
         }
       } else {
         // Check for updates to apply to DB
@@ -138,6 +148,11 @@ export async function POST(request: NextRequest) {
             logger.info('Updated DB user details from Auth', { email: au.email })
           } catch (dbErr: any) {
             logger.error('Failed to update DB user details during sync', { email: au.email, error: dbErr.message })
+            errors.push({
+              authId: au.id,
+              email: au.email,
+              error: dbErr.message,
+            })
           }
         }
       }
@@ -145,7 +160,9 @@ export async function POST(request: NextRequest) {
 
     // --- PHASE B: Sync from DB to Supabase Auth ---
     for (const dbUser of dbUsers) {
-      const existingAuthUser = authById.get(dbUser.supabaseAuthId) || authByEmail.get(dbUser.email.toLowerCase())
+      const existingAuthUser =
+        authById.get(dbUser.supabaseAuthId) ||
+        (dbUser.email ? authByEmail.get(dbUser.email.toLowerCase()) : undefined)
 
       if (!existingAuthUser) {
         // Create user in Supabase Auth
@@ -166,6 +183,11 @@ export async function POST(request: NextRequest) {
 
           if (createAuthError) {
             logger.error('Failed to create Auth user during sync', { email: dbUser.email, error: createAuthError.message })
+            errors.push({
+              authId: dbUser.supabaseAuthId,
+              email: dbUser.email,
+              error: createAuthError.message,
+            })
           } else if (newAuth?.user) {
             // Update supabaseAuthId in DB to match new ID
             await prisma.user.update({
@@ -177,6 +199,11 @@ export async function POST(request: NextRequest) {
           }
         } catch (authErr: any) {
           logger.error('Failed to create Auth user from DB', { email: dbUser.email, error: authErr.message })
+          errors.push({
+            authId: dbUser.supabaseAuthId,
+            email: dbUser.email,
+            error: authErr.message,
+          })
         }
       } else {
         // Check for updates to apply to Supabase Auth
@@ -223,12 +250,22 @@ export async function POST(request: NextRequest) {
 
             if (updateAuthError) {
               logger.error('Failed to update Auth user during sync', { email: dbUser.email, error: updateAuthError.message })
+              errors.push({
+                authId: dbUser.supabaseAuthId,
+                email: dbUser.email,
+                error: updateAuthError.message,
+              })
             } else {
               supabaseUpdated++
               logger.info('Updated Supabase Auth user from DB', { email: dbUser.email })
             }
           } catch (authErr: any) {
             logger.error('Failed to update Auth user from DB', { email: dbUser.email, error: authErr.message })
+            errors.push({
+              authId: dbUser.supabaseAuthId,
+              email: dbUser.email,
+              error: authErr.message,
+            })
           }
         }
       }
@@ -238,6 +275,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Sync completed successfully.\nSummary:\n- DB Created: ${dbCreated}, Updated: ${dbUpdated}\n- Supabase Created: ${supabaseCreated}, Updated: ${supabaseUpdated}, Disabled: ${supabaseDisabled}`,
+      totalAuthUsers: authUsers.length,
+      existingDbUsers: dbUsers.filter((u) => u.supabaseAuthId).length,
+      created: dbCreated,
+      errors: errors.length > 0 ? errors : undefined,
     })
   } catch (err: any) {
     logger.error('Unhandled sync error', { error: err.message })
