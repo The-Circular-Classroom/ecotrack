@@ -201,7 +201,7 @@ export default function Header() {
             </div>
 
             {/* Profile Dropdown */}
-            {(!hideHeaderUI || pathname === '/' || pathname === '') && (
+            {(!hideHeaderUI || pathname === '/' || pathname.startsWith('/users') || pathname.startsWith('/settings')) && (
               <div className="relative ml-auto">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
