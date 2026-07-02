@@ -12,7 +12,7 @@ function normalizePath(p: string | null) {
   return out
 }
 
-const HIDDEN_TAB_ROUTES = ['/', '/analytics', '/auth']
+const HIDDEN_TAB_ROUTES = ['/', '/analytics', '/auth', '/settings', '/users']
 
 interface TabConfig {
   label: string
@@ -31,7 +31,7 @@ const TABS: TabConfig[] = [
 ]
 
 function subscribeRole(onStoreChange: () => void) {
-  if (typeof window === 'undefined') return () => {}
+  if (typeof window === 'undefined') return () => { }
 
   const onAuthChanged = () => onStoreChange()
   const onVisibility = () => {
