@@ -119,6 +119,8 @@ export async function POST(request: NextRequest) {
         targetQuantity: item.requested,
         actualMade: item.planned,
         shortfall: item.shortfall,
+        chosenRecipes: [],
+        recipeBreakdown: [],
         ingredients: item.ingredients.map((ing) => ({
           itemTypeId: ing.itemTypeId,
           sizeClass: ing.sizeClass,

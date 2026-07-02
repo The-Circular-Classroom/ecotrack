@@ -291,7 +291,7 @@ function ProductResult({ prod }) {
           </div>
         </div>
 
-        {prod.chosenRecipes.length > 0 && (
+        {prod.chosenRecipes && prod.chosenRecipes.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {prod.chosenRecipes.map((r) => (
               <button
@@ -306,10 +306,9 @@ function ProductResult({ prod }) {
               </button>
             ))}
           </div>
-        )
-}
+        )}
 
-      {prod.ingredients.length > 0 && (
+      {prod.ingredients && prod.ingredients.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
