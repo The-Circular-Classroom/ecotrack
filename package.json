@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && next build",
@@ -14,6 +15,7 @@
     "db:migrate": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",
     "db:seed": "npx prisma db seed",
+    "preinstall": "npx only-allow pnpm",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
