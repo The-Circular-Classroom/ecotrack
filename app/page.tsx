@@ -6,8 +6,10 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import GrassOutlinedIcon from '@mui/icons-material/GrassOutlined'
 import AutoFixHighOutlinedIcon from '@mui/icons-material/AutoFixHighOutlined'
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined'
+import WebOutlinedIcon from '@mui/icons-material/WebOutlined'
 import NextLink from 'next/link'
 import { getRoleFromSession } from '@/utils/auth'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -60,6 +62,27 @@ export default function Home() {
       requiredRoles: ['TCC_ADMIN'],
     },
     {
+      title: 'Website Management',
+      description: 'Manage the contents of the public website',
+      icon: <WebOutlinedIcon sx={{ fontSize: 32, mb: 2, color: '#1a1a1a' }} />,
+      onClick: async () => {
+        let supabase = createSupabaseBrowserClient()
+        let { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          let accessToken = session.access_token
+          let refreshToken = session.refresh_token
+          window.open(
+            `https://www.hansen-lim.dev/admin/auth/callback?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`,
+            '_blank',
+            'noopener,noreferrer'
+          )
+        } else {
+          window.open('https://www.hansen-lim.dev/admin', '_blank', 'noopener,noreferrer')
+        }
+      },
+      requiredRoles: ['TCC_ADMIN'],
+    },
+    {
       title: 'Future Modules',
       description: 'Stay tune for new modules',
       icon: <AutoFixHighOutlinedIcon sx={{ fontSize: 32, mb: 2, color: '#1a1a1a' }} />,
@@ -87,7 +110,7 @@ export default function Home() {
       <Grid container spacing={4}>
         {cards.map((card, index) => {
           const hasAccess = canAccessCard(card.requiredRoles)
-          const isClickable = Boolean(card.href) && hasAccess
+          const isClickable = (Boolean(card.href) || Boolean(card.onClick)) && hasAccess
 
           return (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
@@ -110,9 +133,13 @@ export default function Home() {
               >
                 {isClickable ? (
                   <CardActionArea
-                    component={card.href.startsWith('http') ? 'a' : NextLink}
-                    href={card.href}
-                    {...(card.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    {...(card.href ? {
+                      component: card.href.startsWith('http') ? 'a' : NextLink,
+                      href: card.href,
+                      ...(card.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})
+                    } : {
+                      onClick: card.onClick
+                    })}
                     sx={{ height: '100%', p: 2 }}
                   >
                     <CardContent>
