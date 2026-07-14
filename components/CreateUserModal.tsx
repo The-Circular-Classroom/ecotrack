@@ -203,6 +203,18 @@ export default function CreateUserModal({ onClose, loggedInSchoolId = null }: Cr
         </div>
 
         <div>
+          <label className={labelCls}>Full Name (Preview)</label>
+          <input
+            type="text"
+            readOnly
+            value={`${form.firstName.trim()} ${form.lastName.trim()}`.trim()}
+            placeholder="Will be populated automatically"
+            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-700 bg-gray-50 cursor-not-allowed focus:outline-none"
+          />
+          <p className="text-xs text-gray-500 mt-1">Populated automatically from First Name and Last Name.</p>
+        </div>
+
+        <div>
           <label className={labelCls}>
             Email<span className="text-red-500 ml-0.5">*</span>
           </label>

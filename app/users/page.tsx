@@ -574,6 +574,15 @@ export default function UsersPage() {
                 fullWidth
               />
               <TextField
+                label="Full Name (Preview)"
+                value={`${(formValues.firstName || '').trim()} ${(formValues.lastName || '').trim()}`.trim()}
+                slotProps={{
+                  input: { readOnly: true }
+                }}
+                fullWidth
+                helperText="Populated automatically from First Name and Last Name"
+              />
+              <TextField
                 label="Email"
                 type="email"
                 value={formValues.email}
