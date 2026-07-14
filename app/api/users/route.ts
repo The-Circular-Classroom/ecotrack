@@ -27,11 +27,19 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
   const rawPageSize = parseInt(searchParams.get('pageSize') || '', 10)
   const pageSize = clampPageSize(isNaN(rawPageSize) ? null : rawPageSize)
-  const email = searchParams.get('email') || undefined
-  logger.debug('Query params', { page, pageSize, email });
+  const search = searchParams.get('search') || searchParams.get('q') || searchParams.get('email') || undefined
+  logger.debug('Query params', { page, pageSize, search });
 
-  const where = email
-    ? { email: { contains: email, mode: 'insensitive' as const } }
+  const where = search
+    ? {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' as const } },
+          { firstName: { contains: search, mode: 'insensitive' as const } },
+          { lastName: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+          { phoneNumber: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
     : {}
 
   logger.debug('Querying Prisma for users');

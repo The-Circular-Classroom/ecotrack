@@ -12,6 +12,8 @@ import {
   Divider,
   Drawer,
   FormControlLabel,
+  IconButton,
+  InputAdornment,
   MenuItem,
   Stack,
   Switch,
@@ -19,6 +21,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import CustomErrorButton from '@/components/ui/CustomErrorButton'
 import SnackbarAlert from '@/components/SnackbarAlert'
@@ -172,13 +176,23 @@ export default function UsersPage() {
     page: 0,
     pageSize: 10,
   })
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
 
   const columns = useMemo(() => buildColumns(), [])
 
-  const fetchUsers = useCallback(async (page: number, pageSize: number) => {
+  const fetchUsers = useCallback(async (page: number, pageSize: number, search: string = '') => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/users?page=${page + 1}&pageSize=${pageSize}`)
+      const searchParam = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''
+      const response = await fetch(`/api/users?page=${page + 1}&pageSize=${pageSize}${searchParam}`)
 
       if (!response.ok) {
         throw new Error('Failed to fetch users')
@@ -199,8 +213,8 @@ export default function UsersPage() {
   }, [])
 
   useEffect(() => {
-    fetchUsers(paginationModel.page, paginationModel.pageSize)
-  }, [fetchUsers, paginationModel.page, paginationModel.pageSize])
+    fetchUsers(paginationModel.page, paginationModel.pageSize, debouncedSearch)
+  }, [fetchUsers, paginationModel.page, paginationModel.pageSize, debouncedSearch])
 
   useEffect(() => {
     const loadCurrentUser = async () => {
@@ -471,7 +485,46 @@ export default function UsersPage() {
             {rowCount} total user record{rowCount !== 1 ? 's' : ''}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1.25 }}>
+        <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}>
+          <TextField
+            placeholder="Search by name, email, or phone..."
+            size="small"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setPaginationModel((prev) => ({ ...prev, page: 0 }))
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSearchQuery('')
+                        setPaginationModel((prev) => ({ ...prev, page: 0 }))
+                      }}
+                      edge="end"
+                    >
+                      <CloseOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
+            }}
+            sx={{
+              minWidth: { xs: 240, sm: 320 },
+              backgroundColor: 'white',
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+              },
+            }}
+          />
           <Button
             variant="outlined"
             onClick={handleSyncUsersFromCognito}
