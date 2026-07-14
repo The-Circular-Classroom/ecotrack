@@ -17,7 +17,7 @@ interface SyncAction {
     | 'auth_unbanned'
     | 'auth_metadata_updated'
     | 'db_created'
-    | 'db_updated'
+    | 'db_auth_id_linked'
     | 'auth_banned_orphan'
   details?: string
 }
@@ -64,19 +64,22 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/users/sync - Sync users between Supabase Auth and the database.
+ * The database (`public.users` Prisma table) is the AUTHORITATIVE source of truth
+ * for user information (names, phone, role, active status).
  *
- * Phase A — Auth → DB:
- *   - Auth user with no DB record  → create DB record
- *   - Auth user with existing DB record → update DB fields if they differ
+ * Phase A — Auth -> DB Link & Initial Import:
+ *   - Auth user with no DB record -> create initial seed DB record.
+ *   - Auth user with existing DB record -> update `supabaseAuthId` in DB if linked by email.
+ *     (Does NOT overwrite DB user details with Auth metadata, as DB is authoritative).
  *
- * Phase B — DB → Auth:
- *   - DB user (is_active=true) with no Auth record  → create Auth user (email confirmation skipped)
- *   - DB user (is_active=false) with active Auth record → ban Auth user
- *   - DB user (is_active=true) with banned Auth record  → un-ban Auth user
- *   - DB user metadata differs from Auth metadata        → update Auth metadata
+ * Phase B — DB -> Auth Sync (Authoritative Push):
+ *   - DB user (is_active=true) with no Auth record -> create Auth user with DB metadata.
+ *   - DB user (is_active=false) with active Auth record -> ban Auth user.
+ *   - DB user (is_active=true) with banned Auth record -> un-ban Auth user.
+ *   - DB user metadata differs from Auth metadata -> update Auth user metadata to match DB.
  *
  * Phase C — Orphan cleanup:
- *   - Auth user with no matching DB record (by supabase_auth_id or email) → ban Auth user
+ *   - Auth user with no matching DB record (by supabase_auth_id or email) -> ban Auth user.
  *
  * Admin-only endpoint.
  */
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  logger.info('Starting user sync operation')
+  logger.info('Starting user sync operation (Prisma DB is authoritative)')
 
   try {
     // -----------------------------------------------------------------------
@@ -140,7 +143,9 @@ export async function POST(request: NextRequest) {
     const errors: SyncError[] = []
 
     // -----------------------------------------------------------------------
-    // PHASE A: Auth → DB
+    // PHASE A: Auth -> DB Linking & Initial Import
+    // If Auth user has no DB record, create seed DB record.
+    // If DB user exists, ensure supabaseAuthId is linked in DB.
     // -----------------------------------------------------------------------
     for (const au of authUsers) {
       const emailLower = au.email?.toLowerCase()
@@ -171,79 +176,63 @@ export async function POST(request: NextRequest) {
             },
           })
           actions.push({ email: au.email, action: 'db_created', details: `role=${auRole}` })
-          logger.info('Created missing DB user from Auth', { email: au.email })
+          logger.info('Created seed DB user from Auth', { email: au.email })
         } catch (dbErr: any) {
-          logger.error('Failed to create DB user from Auth', {
+          logger.error('Failed to create seed DB user from Auth', {
             email: au.email,
             error: dbErr.message,
           })
           errors.push({ authId: au.id, email: au.email, error: dbErr.message })
         }
-      } else {
-        const needsUpdate =
-          existingDbUser.supabaseAuthId !== au.id ||
-          existingDbUser.firstName !== (auFirstName || null) ||
-          existingDbUser.lastName !== (auLastName || null) ||
-          existingDbUser.fullName !== (auFullName || null) ||
-          existingDbUser.phoneNumber !== (auPhone || null) ||
-          existingDbUser.role !== auRole ||
-          existingDbUser.isActive !== auIsActive
-
-        if (needsUpdate) {
-          try {
-            await prisma.user.update({
-              where: { id: existingDbUser.id },
-              data: {
-                supabaseAuthId: au.id,
-                firstName: auFirstName || null,
-                lastName: auLastName || null,
-                fullName: auFullName || null,
-                phoneNumber: auPhone || null,
-                role: auRole,
-                isActive: auIsActive,
-              },
-            })
-            actions.push({
-              email: au.email,
-              action: 'db_updated',
-              details: `role=${auRole}, isActive=${auIsActive}`,
-            })
-            logger.info('Updated DB user from Auth', { email: au.email })
-          } catch (dbErr: any) {
-            logger.error('Failed to update DB user from Auth', {
-              email: au.email,
-              error: dbErr.message,
-            })
-            errors.push({ authId: au.id, email: au.email, error: dbErr.message })
-          }
+      } else if (existingDbUser.supabaseAuthId !== au.id) {
+        // Link supabaseAuthId if matched by email
+        try {
+          await prisma.user.update({
+            where: { id: existingDbUser.id },
+            data: { supabaseAuthId: au.id },
+          })
+          actions.push({
+            email: au.email,
+            action: 'db_auth_id_linked',
+            details: `linked supabaseAuthId=${au.id}`,
+          })
+          logger.info('Updated DB user with matching Supabase Auth ID', { email: au.email })
+        } catch (dbErr: any) {
+          logger.error('Failed to link supabaseAuthId in DB', {
+            email: au.email,
+            error: dbErr.message,
+          })
+          errors.push({ authId: au.id, email: au.email, error: dbErr.message })
         }
       }
     }
 
+    // Refresh DB users list in case new seed records were created or IDs linked
+    const currentDbUsers = await prisma.user.findMany()
+
     // -----------------------------------------------------------------------
-    // PHASE B: DB → Auth
+    // PHASE B: DB -> Auth Sync (DB is Authoritative Source)
+    // Push name, phone, role, and active status from Prisma DB to Auth.
     // -----------------------------------------------------------------------
-    for (const dbUser of dbUsers) {
+    for (const dbUser of currentDbUsers) {
       const existingAuthUser =
         authById.get(dbUser.supabaseAuthId) ??
         (dbUser.email ? authByEmail.get(dbUser.email.toLowerCase()) : undefined)
 
       if (!existingAuthUser) {
-        // No Auth record found
         if (!dbUser.isActive) {
-          // Inactive DB users without an Auth record — nothing to create
           logger.info('Skipping inactive DB user with no Auth record', { email: dbUser.email })
           continue
         }
 
-        // Active DB user → create Auth user
+        // Active DB user -> create Auth user using authoritative DB metadata
         try {
           const tempPassword = generateTempPassword()
           const { data: newAuth, error: createAuthError } =
             await supabaseAdmin.auth.admin.createUser({
               email: dbUser.email,
               password: tempPassword,
-              email_confirm: true, // skip email confirmation
+              email_confirm: true,
               app_metadata: { role: dbUser.role },
               user_metadata: {
                 first_name: dbUser.firstName || '',
@@ -254,7 +243,7 @@ export async function POST(request: NextRequest) {
             })
 
           if (createAuthError) {
-            logger.error('Failed to create Auth user from DB', {
+            logger.error('Failed to create Auth user from authoritative DB user', {
               email: dbUser.email,
               error: createAuthError.message,
             })
@@ -264,7 +253,6 @@ export async function POST(request: NextRequest) {
               error: createAuthError.message,
             })
           } else if (newAuth?.user) {
-            // Keep supabase_auth_id in DB in sync with the new Auth UUID
             await prisma.user.update({
               where: { id: dbUser.id },
               data: { supabaseAuthId: newAuth.user.id },
@@ -274,7 +262,7 @@ export async function POST(request: NextRequest) {
               action: 'auth_created',
               details: `new auth id=${newAuth.user.id}`,
             })
-            logger.info('Created Supabase Auth user from DB', { email: dbUser.email })
+            logger.info('Created Supabase Auth user from authoritative DB user', { email: dbUser.email })
           }
         } catch (authErr: any) {
           logger.error('Failed to create Auth user from DB', {
@@ -290,12 +278,12 @@ export async function POST(request: NextRequest) {
       } else {
         const currentlyBanned = isAuthUserBanned(existingAuthUser)
 
-        // --- Ban inactive DB users that are active in Auth ---
+        // --- Ban inactive DB users in Auth ---
         if (!dbUser.isActive && !currentlyBanned) {
           try {
             const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(
               existingAuthUser.id,
-              { ban_duration: '876000h' } // ~100 years
+              { ban_duration: '876000h' }
             )
             if (banError) {
               logger.error('Failed to ban Auth user', {
@@ -326,10 +314,10 @@ export async function POST(request: NextRequest) {
               error: authErr.message,
             })
           }
-          continue // Skip metadata update for banned users
+          continue
         }
 
-        // --- Un-ban active DB users that are currently banned in Auth ---
+        // --- Un-ban active DB users in Auth ---
         if (dbUser.isActive && currentlyBanned) {
           try {
             const { error: unbanError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -367,7 +355,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // --- Update Auth metadata if it has drifted from DB ---
+        // --- Overwrite Auth metadata with authoritative DB user info ---
         const auFirstName: string = existingAuthUser.user_metadata?.first_name || ''
         const auLastName: string = existingAuthUser.user_metadata?.last_name || ''
         const auFullName: string = existingAuthUser.user_metadata?.full_name || ''
@@ -375,14 +363,14 @@ export async function POST(request: NextRequest) {
           existingAuthUser.user_metadata?.phone_number || existingAuthUser.phone || ''
         const auRole: string = existingAuthUser.app_metadata?.role || ''
 
-        const metadataDrifted =
+        const metadataMismatch =
           auFirstName !== (dbUser.firstName || '') ||
           auLastName !== (dbUser.lastName || '') ||
           auFullName !== (dbUser.fullName || '') ||
           auPhone !== (dbUser.phoneNumber || '') ||
           auRole !== dbUser.role
 
-        if (metadataDrifted) {
+        if (metadataMismatch) {
           try {
             const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
               existingAuthUser.id,
@@ -397,7 +385,7 @@ export async function POST(request: NextRequest) {
               }
             )
             if (updateError) {
-              logger.error('Failed to update Auth metadata', {
+              logger.error('Failed to update Auth metadata from authoritative DB user', {
                 email: dbUser.email,
                 error: updateError.message,
               })
@@ -410,9 +398,9 @@ export async function POST(request: NextRequest) {
               actions.push({
                 email: dbUser.email,
                 action: 'auth_metadata_updated',
-                details: `role=${dbUser.role}`,
+                details: `synced from DB: role=${dbUser.role}, name=${dbUser.fullName || dbUser.firstName}`,
               })
-              logger.info('Updated Auth metadata from DB', { email: dbUser.email })
+              logger.info('Updated Auth metadata from authoritative DB user', { email: dbUser.email })
             }
           } catch (authErr: any) {
             logger.error('Failed to update Auth metadata', {
@@ -436,7 +424,9 @@ export async function POST(request: NextRequest) {
     for (const au of authUsers) {
       const emailLower = au.email?.toLowerCase()
       const hasDbRecord =
-        dbByAuthId.has(au.id) || (emailLower ? dbByEmail.has(emailLower) : false)
+        currentDbUsers.some(
+          (u) => u.supabaseAuthId === au.id || (emailLower && u.email.toLowerCase() === emailLower)
+        )
 
       if (!hasDbRecord) {
         if (isAuthUserBanned(au)) continue // Already banned
@@ -479,17 +469,17 @@ export async function POST(request: NextRequest) {
       authMetadataUpdated: actions.filter((a) => a.action === 'auth_metadata_updated').length,
       authBannedOrphan: actions.filter((a) => a.action === 'auth_banned_orphan').length,
       dbCreated: actions.filter((a) => a.action === 'db_created').length,
-      dbUpdated: actions.filter((a) => a.action === 'db_updated').length,
+      dbAuthIdLinked: actions.filter((a) => a.action === 'db_auth_id_linked').length,
       errorCount: errors.length,
     }
 
-    logger.info('User sync completed', summary)
+    logger.info('User sync completed (Prisma DB authoritative)', summary)
 
     return NextResponse.json({
       success: true,
-      message: 'Sync completed successfully',
+      message: 'Sync completed successfully (Prisma DB is authoritative source)',
       totalAuthUsers: authUsers.length,
-      totalDbUsers: dbUsers.length,
+      totalDbUsers: currentDbUsers.length,
       summary,
       actions,
       errors: errors.length > 0 ? errors : undefined,
