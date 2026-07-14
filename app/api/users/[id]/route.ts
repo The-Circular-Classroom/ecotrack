@@ -121,6 +121,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     )
   }
 
+  // Prevent self-editing via admin management endpoint
+  const currentAuthId = request.headers.get('x-user-id')
+  if (currentAuthId && existingUser.supabaseAuthId === currentAuthId) {
+    logger.warn('Forbidden: cannot edit own account via management route', { userId })
+    return NextResponse.json(
+      { error: 'forbidden', message: 'Your account can only be edited via the settings page' },
+      { status: 400 }
+    )
+  }
+
   // Build update data for DB
   const dbUpdate: Record<string, unknown> = {}
   if (body.firstName !== undefined) dbUpdate.firstName = body.firstName
@@ -250,6 +260,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { error: 'not_found', message: 'User not found' },
       { status: 404 }
+    )
+  }
+
+  // Prevent self-deletion
+  const currentAuthId = request.headers.get('x-user-id')
+  if (currentAuthId && existingUser.supabaseAuthId === currentAuthId) {
+    logger.warn('Forbidden: cannot delete own account', { userId })
+    return NextResponse.json(
+      { error: 'forbidden', message: 'Another admin must delete your account' },
+      { status: 400 }
     )
   }
 
