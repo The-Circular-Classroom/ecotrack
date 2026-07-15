@@ -28,7 +28,7 @@
     "@mui/x-data-grid": "^8.29.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "@supabase/ssr": "^0.12.0",
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.2",
     "@types/pdfkit": "^0.17.6",
     "next": "^16.2.10",
