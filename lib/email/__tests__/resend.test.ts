@@ -22,9 +22,10 @@ const { mockSend, mockGetUserById } = vi.hoisted(() => ({
 
 // Mock resend module
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: { send: mockSend },
-  })),
+  Resend: vi.fn().mockImplementation(function (this: any) {
+    this.emails = { send: mockSend }
+    return this
+  }),
 }))
 
 // Mock supabase admin client

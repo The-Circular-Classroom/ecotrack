@@ -157,8 +157,8 @@ describe('Preservation Property Tests - Property 2: Backend API Routes and Auth 
     expect(middlewareSource).toContain("pathname.startsWith('/api/')")
     expect(middlewareSource).toContain('status: 401')
 
-    // Middleware must redirect unauthenticated page requests to /login
-    expect(middlewareSource).toContain("'/login'")
+    // Middleware must redirect unauthenticated page requests to /auth/login
+    expect(middlewareSource).toContain("'/auth/login'")
     expect(middlewareSource).toContain('NextResponse.redirect')
 
     // Middleware must attach x-user-id and x-user-role headers
@@ -266,26 +266,20 @@ describe('Preservation Property Tests - Property 2: Backend API Routes and Auth 
   })
 
   /**
-   * Property: Next.js 15 App Router conventions preserved with (auth) and (dashboard)
-   * route groups and TypeScript .tsx format.
+   * Property: Next.js 15 App Router conventions preserved with route groups and TypeScript format.
    *
    * **Validates: Requirements 3.6**
    */
   it('Property: Next.js 15 App Router conventions preserved with route groups and TypeScript format', () => {
-    // (auth) route group exists
-    expect(fileExists('app/(auth)/layout.tsx')).toBe(true)
-    expect(fileExists('app/(auth)/login/page.tsx')).toBe(true)
-    expect(fileExists('app/(auth)/register/page.tsx')).toBe(true)
+    // Auth pages exist
+    expect(fileExists('app/auth/login/page.tsx')).toBe(true)
+    expect(fileExists('app/auth/signup/page.tsx')).toBe(true)
 
-    // (dashboard) route group exists
-    expect(fileExists('app/(dashboard)/layout.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/overview/page.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/inventory/page.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/analytics/page.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/users/page.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/donations/page.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/csv-upload/page.tsx')).toBe(true)
-    expect(fileExists('app/(dashboard)/settings/page.tsx')).toBe(true)
+    // Feature pages exist
+    expect(fileExists('app/inventory/page.tsx')).toBe(true)
+    expect(fileExists('app/users/page.tsx')).toBe(true)
+    expect(fileExists('app/donation-drives/page.tsx')).toBe(true)
+    expect(fileExists('app/settings/page.tsx')).toBe(true)
 
     // Root layout exists
     expect(fileExists('app/layout.tsx')).toBe(true)

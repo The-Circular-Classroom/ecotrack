@@ -233,10 +233,16 @@ describe('User Management API - Edge Cases', () => {
         error: null,
       } as never)
 
-      // Mock existing DB users - only auth-1 exists in DB
-      vi.mocked(prisma.user.findMany).mockResolvedValue([
-        { supabaseAuthId: 'auth-1' },
-      ] as never)
+      // Mock existing DB users - only auth-1 exists in DB initially, then all 3 exist on second fetch
+      vi.mocked(prisma.user.findMany)
+        .mockResolvedValueOnce([
+          { id: 1, supabaseAuthId: 'auth-1', email: 'user1@example.com', role: 'Admin', isActive: true },
+        ] as never)
+        .mockResolvedValue([
+          { id: 1, supabaseAuthId: 'auth-1', email: 'user1@example.com', role: 'Admin', isActive: true },
+          { id: 2, supabaseAuthId: 'auth-2', email: 'user2@example.com', role: 'SchoolStaff', isActive: true },
+          { id: 3, supabaseAuthId: 'auth-3', email: 'user3@example.com', role: 'Parent', isActive: true },
+        ] as never)
 
       // Mock successful DB creation
       vi.mocked(prisma.user.create).mockResolvedValue({
@@ -255,8 +261,7 @@ describe('User Management API - Edge Cases', () => {
 
       expect(response.status).toBe(200)
       expect(json.totalAuthUsers).toBe(3)
-      expect(json.existingDbUsers).toBe(1)
-      expect(json.created).toBe(2)
+      expect(json.summary.dbCreated).toBe(2)
       // Verify create was called for the missing users
       expect(prisma.user.create).toHaveBeenCalledTimes(2)
       // auth-2 should be created with SchoolStaff role
@@ -298,6 +303,11 @@ describe('User Management API - Edge Cases', () => {
         error: null,
       } as never)
 
+      vi.mocked(supabaseAdmin.auth.admin.updateUserById).mockResolvedValue({
+        data: { user: {} as any },
+        error: null,
+      } as never)
+
       vi.mocked(prisma.user.findMany).mockResolvedValue([] as never)
       vi.mocked(prisma.user.create).mockRejectedValue(new Error('DB constraint error'))
 
@@ -310,7 +320,7 @@ describe('User Management API - Edge Cases', () => {
       const json = await response.json()
 
       expect(response.status).toBe(200)
-      expect(json.created).toBe(0)
+      expect(json.summary.dbCreated).toBe(0)
       expect(json.errors).toHaveLength(1)
       expect(json.errors[0].authId).toBe('auth-fail')
       expect(json.errors[0].email).toBe('fail@example.com')
