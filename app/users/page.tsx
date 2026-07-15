@@ -9,6 +9,9 @@ import {
   CircularProgress,
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogActions,
+  Checkbox,
   Divider,
   Drawer,
   FormControlLabel,
@@ -23,6 +26,9 @@ import {
 } from '@mui/material'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import KeyIcon from '@mui/icons-material/Key'
+import CheckIcon from '@mui/icons-material/Check'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import CustomErrorButton from '@/components/ui/CustomErrorButton'
 import SnackbarAlert from '@/components/SnackbarAlert'
@@ -169,6 +175,11 @@ export default function UsersPage() {
   const [formValues, setFormValues] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [settingTempPassword, setSettingTempPassword] = useState(false)
+  const [sendTempEmailOption, setSendTempEmailOption] = useState(true)
+  const [tempPasswordResult, setTempPasswordResult] = useState<{ tempPassword: string; emailSent: boolean } | null>(null)
+  const [tempPasswordModalOpen, setTempPasswordModalOpen] = useState(false)
+  const [copiedPassword, setCopiedPassword] = useState(false)
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState('')
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'info' | 'warning' | 'error'>('success')
@@ -376,6 +387,51 @@ export default function UsersPage() {
       setSaving(false)
     }
   }, [fetchUsers, formValues, handleCloseDrawer, isEditingOwnAccount, paginationModel.page, paginationModel.pageSize, selectedUser])
+
+  const handleSetTempPassword = useCallback(async () => {
+    if (!selectedUser) return
+
+    if (isEditingOwnAccount) {
+      setSnackbarMessage('You cannot set a temporary password for your own account')
+      setSnackbarSeverity('error')
+      setSnackbarOpen(true)
+      return
+    }
+
+    try {
+      setSettingTempPassword(true)
+      const response = await fetch(`/api/users/${selectedUser.id}/set-temp-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sendEmail: sendTempEmailOption,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to set temporary password')
+      }
+
+      setTempPasswordResult({
+        tempPassword: data.tempPassword,
+        emailSent: Boolean(data.emailSent),
+      })
+      setTempPasswordModalOpen(true)
+      setCopiedPassword(false)
+      setSnackbarMessage('Temporary password generated successfully')
+      setSnackbarSeverity('success')
+      setSnackbarOpen(true)
+    } catch (err: any) {
+      setSnackbarMessage(getErrorMessage(err, 'Failed to set temporary password'))
+      setSnackbarSeverity('error')
+      setSnackbarOpen(true)
+    } finally {
+      setSettingTempPassword(false)
+    }
+  }, [isEditingOwnAccount, selectedUser, sendTempEmailOption])
 
   const handleDeleteUser = useCallback(async () => {
     if (!selectedUser) return
@@ -690,6 +746,46 @@ export default function UsersPage() {
                 label="User is active"
               />
 
+              <Divider sx={{ my: 1 }} />
+
+              <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                  Temporary Password Action
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Set a temporary password. The user will be required to change it upon next login.
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={sendTempEmailOption}
+                      onChange={(e) => setSendTempEmailOption(e.target.checked)}
+                    />
+                  }
+                  label={<Typography variant="body2">Send password to user via email</Typography>}
+                  sx={{ mb: 1.5, display: 'block' }}
+                />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={settingTempPassword ? <CircularProgress size={14} /> : <KeyIcon fontSize="small" />}
+                  onClick={handleSetTempPassword}
+                  disabled={settingTempPassword || isEditingOwnAccount || saving || deleting}
+                  fullWidth
+                  sx={{
+                    borderColor: 'var(--color-main, #16a34a)',
+                    color: 'var(--color-main, #16a34a)',
+                    '&:hover': {
+                      borderColor: 'var(--color-main, #16a34a)',
+                      bgcolor: 'rgba(22, 163, 74, 0.04)',
+                    },
+                  }}
+                >
+                  {settingTempPassword ? 'Generating Password...' : 'Set Temporary Password'}
+                </Button>
+              </Box>
+
               <Box sx={{ mt: 1 }}>
                 <Typography variant="caption" color="text.secondary">
                   Last login: {formatDateTime(selectedUser?.lastLogin)}
@@ -764,6 +860,67 @@ export default function UsersPage() {
             onClose={handleCreateUserClose}
           />
         </DialogContent>
+      </Dialog>
+
+      {/* Temporary Password Result Dialog */}
+      <Dialog
+        open={tempPasswordModalOpen}
+        onClose={() => setTempPasswordModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Temporary Password Created</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              The temporary password for <strong>{selectedUser?.fullName || selectedUser?.email}</strong> has been generated:
+            </Typography>
+            <TextField
+              value={tempPasswordResult?.tempPassword || ''}
+              fullWidth
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => {
+                          if (tempPasswordResult?.tempPassword) {
+                            navigator.clipboard.writeText(tempPasswordResult.tempPassword)
+                            setCopiedPassword(true)
+                            setTimeout(() => setCopiedPassword(false), 2000)
+                          }
+                        }}
+                        edge="end"
+                      >
+                        {copiedPassword ? <CheckIcon color="success" /> : <ContentCopyIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace', fontWeight: 700, fontSize: '1.05rem' } }}
+            />
+            {tempPasswordResult?.emailSent ? (
+              <Typography variant="caption" color="success.main" fontWeight={600}>
+                ✓ An email containing this temporary password has been sent to {selectedUser?.email}.
+              </Typography>
+            ) : (
+              <Typography variant="caption" color="text.secondary">
+                Please securely copy and share this temporary password with the user.
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            variant="contained"
+            onClick={() => setTempPasswordModalOpen(false)}
+            sx={{ bgcolor: 'var(--button-bg)', '&:hover': { bgcolor: 'var(--button-hover)' } }}
+          >
+            Done
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <StyledConfirmDialog

@@ -49,5 +49,6 @@ export async function GET(request: NextRequest) {
     school: user.school ? { id: user.school.id, name: user.school.schoolName } : null,
     phone: user.phoneNumber,
     isActive: user.isActive,
+    mustChangePassword: (user.userFlags as any)?.must_change_password === true,
   })
 }

@@ -82,7 +82,9 @@ function LoginForm() {
           window.dispatchEvent(new Event('auth-changed'))
 
           setTimeout(() => {
-            if (continuePath) {
+            if (profile.mustChangePassword) {
+              router.replace('/auth/change-password')
+            } else if (continuePath) {
               router.replace(continuePath)
             } else {
               router.replace('/')

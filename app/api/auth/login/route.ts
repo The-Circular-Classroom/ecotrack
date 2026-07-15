@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
         id: data.user.id,
         email: data.user.email,
         role,
+        mustChangePassword: data.user.app_metadata?.force_password_change === true,
       },
     })
   } catch (err) {

@@ -8,8 +8,10 @@ const PUBLIC_PATHS = [
   '/auth/forget-password',
   '/auth/reset-password',
   '/auth/set-new-password',
+  '/auth/change-password',
   '/api/health',
   '/api/auth/login',
+  '/api/auth/logout',
   '/api/auth/register',
   '/api/auth/reset-password',
   '/api/auth/callback',
@@ -64,6 +66,27 @@ export async function proxy(request: NextRequest) {
     }
     // For page requests, redirect to login
     return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // Enforcement check: user must change temporary password before accessing protected routes
+  const forcePasswordChange = user.app_metadata?.force_password_change === true
+  if (forcePasswordChange) {
+    const ALLOWED_FORCE_CHANGE_PATHS = [
+      '/auth/change-password',
+      '/api/auth/set-new-password',
+      '/api/auth/logout',
+    ]
+
+    const isAllowed = ALLOWED_FORCE_CHANGE_PATHS.some((p) => pathname.startsWith(p))
+    if (!isAllowed) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'password_change_required', message: 'You must change your temporary password' },
+          { status: 403 }
+        )
+      }
+      return NextResponse.redirect(new URL('/auth/change-password', request.url))
+    }
   }
 
   // Look up the user's role from the users table (canonical source)

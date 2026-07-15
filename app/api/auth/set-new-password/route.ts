@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/prisma/client'
 import { validatePassword } from '@/lib/auth/validation'
 import { createApiLogger } from '@/lib/logger'
 
@@ -86,7 +87,10 @@ export async function POST(request: NextRequest) {
       logger.debug('User found, updating password via admin', { userId: user.id });
 
       const { error: updateError } =
-        await supabaseAdmin.auth.admin.updateUserById(user.id, { password })
+        await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          password,
+          app_metadata: { force_password_change: false },
+        })
 
       if (updateError) {
         logger.error('Password update failed', { error: updateError.message, userId: user.id });
@@ -94,6 +98,25 @@ export async function POST(request: NextRequest) {
           { error: 'update_failed', message: 'Failed to update password' },
           { status: 400 }
         )
+      }
+
+      // Clear must_change_password flag in Prisma DB user_flags
+      try {
+        const dbUser = await prisma.user.findUnique({ where: { supabaseAuthId: user.id } })
+        if (dbUser) {
+          const existingFlags = (dbUser.userFlags as Record<string, any>) || {}
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: {
+              userFlags: {
+                ...existingFlags,
+                must_change_password: false,
+              },
+            },
+          })
+        }
+      } catch (dbErr: any) {
+        logger.error('Failed to clear DB must_change_password flag', { error: dbErr?.message })
       }
 
       logger.info('Password updated successfully (admin flow)', { userId: user.id });
@@ -147,6 +170,35 @@ export async function POST(request: NextRequest) {
     }
 
     logger.info('Password updated successfully (session flow)', { userId: user.id });
+
+    // Clear force_password_change flag in Supabase app_metadata
+    try {
+      await supabaseAdmin.auth.admin.updateUserById(user.id, {
+        app_metadata: { force_password_change: false },
+      })
+    } catch (clearErr: any) {
+      logger.error('Failed to clear app_metadata force_password_change flag', { error: clearErr?.message })
+    }
+
+    // Clear must_change_password flag in Prisma DB user_flags
+    try {
+      const dbUser = await prisma.user.findUnique({ where: { supabaseAuthId: user.id } })
+      if (dbUser) {
+        const existingFlags = (dbUser.userFlags as Record<string, any>) || {}
+        await prisma.user.update({
+          where: { id: dbUser.id },
+          data: {
+            userFlags: {
+              ...existingFlags,
+              must_change_password: false,
+            },
+          },
+        })
+      }
+    } catch (dbErr: any) {
+      logger.error('Failed to clear DB must_change_password flag', { error: dbErr?.message })
+    }
+
     logger.info('Response sent', { status: 200 });
     return NextResponse.json({ success: true })
   } catch (err) {

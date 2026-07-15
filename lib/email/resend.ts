@@ -135,3 +135,25 @@ export async function sendCsvProcessedEmail(params: {
   `
   await sendWithRetry({ to, subject, html })
 }
+
+/**
+ * Send temporary password email to user.
+ */
+export async function sendTempPasswordEmail(params: {
+  to: string
+  tempPassword: string
+  firstName?: string
+}): Promise<void> {
+  const { to, tempPassword, firstName } = params
+  const greeting = firstName ? `Hello ${firstName},` : 'Hello,'
+  const subject = 'Your Temporary Password for EcoTrack'
+  const html = `
+    <h2>Temporary Password Notification</h2>
+    <p>${greeting}</p>
+    <p>An administrator has set a temporary password for your EcoTrack account.</p>
+    <p><strong>Temporary Password:</strong> <code style="font-size: 1.1em; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
+    <p>Please log in using this temporary password. Upon logging in, you will be required to create a new permanent password.</p>
+  `
+  await sendWithRetry({ to, subject, html })
+}
+
