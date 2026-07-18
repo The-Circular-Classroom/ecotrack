@@ -86,18 +86,33 @@ const CATEGORY_COLOUR_FALLBACKS: Record<string, Record<string, string>> = {
 }
 
 /**
- * Builds the public Supabase Storage URL for a uniform graphic.
+ * Builds the public Supabase Storage URL for a uniform graphic or preset asset.
  *
  * @param supabaseUrl  - `process.env.NEXT_PUBLIC_SUPABASE_URL`
  * @param categoryName - The category name from the DB (e.g., "PE Shirt")
  * @param colourName   - The primary colour name from the DB (e.g., "Maroon")
+ * @param rawImageUrl  - Optional existing image URL or relative path from DB
  * @returns            - Full public URL or `null` if no asset is available
  */
 export function getUniformImageUrl(
   supabaseUrl: string,
-  categoryName: string | null | undefined,
-  colourName: string | null | undefined
+  categoryName?: string | null | undefined,
+  colourName?: string | null | undefined,
+  rawImageUrl?: string | null | undefined
 ): string | null {
+  if (rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.trim() !== '') {
+    const trimmed = rawImageUrl.trim()
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed
+    }
+    const cleanPath = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed
+    const baseUrl = supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    if (baseUrl) {
+      return `${baseUrl}/storage/v1/object/public/static-assets/${cleanPath}`
+    }
+    return `/${cleanPath}`
+  }
+
   if (!supabaseUrl || !categoryName || !colourName) return null
 
   const categoryEntry = CATEGORY_TO_STORAGE[categoryName]

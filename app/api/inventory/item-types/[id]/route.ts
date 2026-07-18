@@ -55,15 +55,16 @@ export async function GET(
     )
   }
 
-  // Enrich: compute imageUrl from storage when DB value is null
-  const enriched: any = { ...itemType }
-  if (!enriched.imageUrl) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-    enriched.imageUrl = getUniformImageUrl(
+  // Enrich: compute imageUrl from storage
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const enriched: any = {
+    ...itemType,
+    imageUrl: getUniformImageUrl(
       supabaseUrl,
       itemType.category?.categoryName ?? null,
-      itemType.primaryColour?.colourName ?? null
-    )
+      itemType.primaryColour?.colourName ?? null,
+      itemType.imageUrl
+    ),
   }
 
   return NextResponse.json({ itemType: enriched })

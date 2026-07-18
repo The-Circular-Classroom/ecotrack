@@ -71,14 +71,14 @@ export async function GET(request: NextRequest) {
     ],
   })
 
-  // Enrich balances: resolve imageUrl from storage when DB value is null
+  // Enrich balances: resolve imageUrl from storage
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const enrichedBalances = balances.map((balance) => {
     const itemType = balance.itemType as any
-    if (itemType && !itemType.imageUrl) {
+    if (itemType) {
       const categoryName = itemType.category?.categoryName ?? null
       const colourName = itemType.primaryColour?.colourName ?? null
-      itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName)
+      itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName, itemType.imageUrl)
     }
     return balance
   })

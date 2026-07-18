@@ -207,10 +207,11 @@ export default function PresetPage() {
 
             const mappedPresets = rawPresets.map((item: any) => {
                 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-                const resolvedImageUrl = item.imageUrl || getUniformImageUrl(
+                const resolvedImageUrl = getUniformImageUrl(
                     supabaseUrl,
                     item.category?.categoryName ?? null,
-                    item.primaryColour?.colourName ?? null
+                    item.primaryColour?.colourName ?? null,
+                    item.imageUrl
                 );
                 return {
                 id: item.id,

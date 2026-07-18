@@ -103,10 +103,10 @@ export default function UpdateItemCondition() {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
       sortedData.forEach((balance) => {
         const itemType = balance?.itemType;
-        if (itemType && !itemType.imageUrl) {
+        if (itemType) {
           const categoryName = itemType.category?.categoryName ?? null;
           const colourName = itemType.primaryColour?.colourName ?? null;
-          itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName);
+          itemType.imageUrl = getUniformImageUrl(supabaseUrl, categoryName, colourName, itemType.imageUrl);
         }
       });
 

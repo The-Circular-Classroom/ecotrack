@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth/roles'
 import { clampPageSize } from '@/lib/pagination'
 import { prisma } from '@/lib/prisma/client'
+import { getUniformImageUrl } from '@/lib/inventory/uniformImageUrl'
 
 /**
  * GET /api/inventory/item-types - List item types with pagination.
@@ -46,8 +47,19 @@ export async function GET(request: NextRequest) {
     prisma.itemType.count({ where }),
   ])
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const enrichedItemTypes = itemTypes.map((itemType) => ({
+    ...itemType,
+    imageUrl: getUniformImageUrl(
+      supabaseUrl,
+      itemType.category?.categoryName ?? null,
+      itemType.primaryColour?.colourName ?? null,
+      itemType.imageUrl
+    ),
+  }))
+
   return NextResponse.json({
-    itemTypes,
+    itemTypes: enrichedItemTypes,
     pagination: {
       page,
       pageSize,
