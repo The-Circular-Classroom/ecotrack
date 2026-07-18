@@ -112,6 +112,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
         .map((school) => ({
           ...school,
           id: getSchoolOptionId(school),
+          schoolName: school.schoolName || school.name || "Unknown School",
         }))
         .filter((school) => school.id);
 
@@ -120,7 +121,8 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
       );
 
       const inventorySchoolMap = new Map();
-      (inventoryJson.data || []).forEach((balance) => {
+      const balances = inventoryJson.balances || inventoryJson.data || [];
+      balances.forEach((balance) => {
         const school = balance?.itemType?.school;
         const schoolId = getSchoolOptionId(school);
 
@@ -137,8 +139,18 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
         });
       });
 
+      const allSchoolsMap = new Map();
+      analyticsSchools.forEach((s) => allSchoolsMap.set(String(s.id), s));
+      inventorySchoolMap.forEach((s, key) => {
+        if (!allSchoolsMap.has(key)) {
+          allSchoolsMap.set(key, s);
+        } else {
+          allSchoolsMap.set(key, { ...allSchoolsMap.get(key), ...s });
+        }
+      });
+
       setSchools(
-        Array.from(inventorySchoolMap.values()).sort((a, b) =>
+        Array.from(allSchoolsMap.values()).sort((a, b) =>
           String(a.schoolName || "").localeCompare(String(b.schoolName || ""))
         )
       );
@@ -468,7 +480,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
                     drives.map((d) => {
                       const active = driveIsActive(d);
                       return (
-                        <MenuItem key={d.id} value={d.id}>
+                        <MenuItem key={d.id} value={String(d.id)}>
                           <Box
                             display="flex"
                             alignItems="center"
