@@ -75,6 +75,10 @@ export async function proxy(request: NextRequest) {
       '/auth/change-password',
       '/api/auth/set-new-password',
       '/api/auth/logout',
+      '/api/auth/me',
+      '/api/auth/session',
+      '/api/auth/refresh',
+      '/api/users/me',
     ]
 
     const isAllowed = ALLOWED_FORCE_CHANGE_PATHS.some((p) => pathname.startsWith(p))
@@ -139,6 +143,7 @@ export async function proxy(request: NextRequest) {
   // Attach user info to headers for downstream use
   response.headers.set('x-user-id', user.id)
   response.headers.set('x-user-role', role)
+  response.headers.set('x-user-force-password-change', String(forcePasswordChange))
 
   return response
 }

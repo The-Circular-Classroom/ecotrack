@@ -330,6 +330,28 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 4: JWT authenticat
     )
   })
 
+  it('SHALL allow /api/users/me when user has force_password_change set to true', async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: {
+          id: 'user-uuid-temp',
+          app_metadata: { role: 'Parent', force_password_change: true },
+        },
+      },
+      error: null,
+    })
+    mockCreateServerClient.mockReturnValue({
+      auth: { getUser: mockGetUser },
+    })
+
+    const request = new NextRequest(`${BASE_URL}/api/users/me`)
+    const response = await proxy(request)
+
+    expect((response as any)._type).toBe('next')
+    expect(response.headers.get('x-user-id')).toBe('user-uuid-temp')
+    expect(response.headers.get('x-user-force-password-change')).toBe('true')
+  })
+
   it('SHALL not call getUser for public paths (no auth check needed)', async () => {
     await fc.assert(
       fc.asyncProperty(publicPathArb, async (path) => {

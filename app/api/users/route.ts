@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     email,
     password: tempPassword,
     email_confirm: true,
-    app_metadata: { role: userRole },
+    app_metadata: { role: userRole, force_password_change: true },
     user_metadata: {
       first_name: firstName || '',
       last_name: lastName || '',
@@ -174,6 +174,10 @@ export async function POST(request: NextRequest) {
         fullName: [firstName, lastName].filter(Boolean).join(' ') || null,
         isActive: true,
         schoolId: schoolId || null,
+        userFlags: {
+          onboarding_completed: false,
+          must_change_password: true,
+        },
       },
     })
 

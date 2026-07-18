@@ -33,7 +33,10 @@ function LoginForm() {
       const supabase = createSupabaseBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        if (continuePath) {
+        const forcePasswordChange = session.user?.app_metadata?.force_password_change === true
+        if (forcePasswordChange) {
+          router.replace('/auth/change-password')
+        } else if (continuePath) {
           router.replace(continuePath)
         } else {
           router.replace('/')
@@ -71,9 +74,12 @@ function LoginForm() {
       }
 
       if (data.session) {
+        const forcePasswordChange = data.user?.app_metadata?.force_password_change === true
         // Resolve profile and roles using users/me API
         const profile = await fetchUserProfile()
-        if (profile) {
+        const mustChangePassword = forcePasswordChange || profile?.mustChangePassword === true
+
+        if (profile || forcePasswordChange) {
           setMessage('Login successful')
           setSeverity('success')
           setOpen(true)
@@ -82,7 +88,7 @@ function LoginForm() {
           window.dispatchEvent(new Event('auth-changed'))
 
           setTimeout(() => {
-            if (profile.mustChangePassword) {
+            if (mustChangePassword) {
               router.replace('/auth/change-password')
             } else if (continuePath) {
               router.replace(continuePath)
