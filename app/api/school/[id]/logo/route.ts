@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma/client'
+import { resolveSchoolLogoUrl } from '@/lib/school/logo'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -26,13 +27,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       select: { logoUrl: true }
     })
 
-    if (!school || !school.logoUrl) {
-      // Redirect to the default placeholder logo in the public folder
-      return NextResponse.redirect(new URL('/images/Logo-Symbol-green-stem.png', request.url))
-    }
-
-    // Redirect to the stored public URL of the logo
-    return NextResponse.redirect(new URL(school.logoUrl))
+    const targetUrl = resolveSchoolLogoUrl(school?.logoUrl, schoolId)
+    return NextResponse.redirect(new URL(targetUrl, request.url))
   } catch (error) {
     return NextResponse.json(
       { error: 'database_error', message: 'Failed to fetch logo' },

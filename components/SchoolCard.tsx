@@ -1,5 +1,6 @@
 // @ts-nocheck
 import Image from 'next/image';
+import { resolveSchoolLogoUrl } from '@/lib/school/logo';
 
 const toTitleCase = (str) => {
   if (!str) return str;
@@ -8,6 +9,7 @@ const toTitleCase = (str) => {
 
 export default function SchoolCard({ school, onClick }) {
   const totalItems = school.totalQuantity || 0;
+  const logoSrc = resolveSchoolLogoUrl(school.logoUrl, school.id);
 
   return (
     <div
@@ -16,9 +18,9 @@ export default function SchoolCard({ school, onClick }) {
     >
       {/* School Logo */}
       <div className="flex-shrink-0 w-20 h-20 relative rounded-xl overflow-hidden">
-        {school.logoUrl ? (
+        {logoSrc ? (
           <Image
-            src={school.logoUrl}
+            src={logoSrc}
             alt={school.schoolName}
             fill
             unoptimized

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma/client'
 import { createApiLogger } from '@/lib/logger'
+import { resolveSchoolLogoUrl } from '@/lib/school/logo'
 
 /**
  * GET /api/school/psg - Fetch the school details for the currently logged-in user.
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
       postalCode: user.school.postalCode,
       zoneCode: user.school.zoneCode,
       status: user.school.status,
-      logoUrl: user.school.logoUrl || `/api/school/${user.school.id}/logo`,
+      logoUrl: resolveSchoolLogoUrl(user.school.logoUrl, user.school.id),
       isCooperating: user.school.isCooperating,
     }
 

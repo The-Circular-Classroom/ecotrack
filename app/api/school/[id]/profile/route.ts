@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma/client'
 import { requireRole } from '@/lib/auth/roles'
 import { createApiLogger } from '@/lib/logger'
+import { resolveSchoolLogoUrl } from '@/lib/school/logo'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         natureCode: school.natureCode,
         zoneCode: school.zoneCode,
         status: school.status,
-        logoUrl: school.logoUrl || `/api/school/${school.id}/logo`,
+        logoUrl: resolveSchoolLogoUrl(school.logoUrl, school.id),
         isCooperating: school.isCooperating,
         contacts: {
           schoolStaff,

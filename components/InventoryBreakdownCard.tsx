@@ -4,6 +4,7 @@
 import Image from "next/image";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
 import RecyclingIcon from "@mui/icons-material/Recycling";
+import { resolveSchoolLogoUrl } from "@/lib/school/logo";
 
 /** Inline SVG placeholder for a school building (used when logoUrl is absent). */
 function SchoolPlaceholder({ size = 24 }) {
@@ -27,6 +28,8 @@ function SchoolPlaceholder({ size = 24 }) {
 
 export default function InventoryBreakdownCard({ items = [], isAdmin, schoolLogoUrl }) {
     if (!items.length) return null;
+
+    const resolvedLogoUrl = resolveSchoolLogoUrl(schoolLogoUrl);
 
     const schoolStock = items
         .filter((r) => r.itemStatus === "GeneralOffice" && r.storedAt === "School")
@@ -57,9 +60,9 @@ export default function InventoryBreakdownCard({ items = [], isAdmin, schoolLogo
             value: schoolStock,
             color: "#15803d",
             renderIcon: () =>
-                schoolLogoUrl ? (
+                resolvedLogoUrl ? (
                     <Image
-                        src={schoolLogoUrl}
+                        src={resolvedLogoUrl}
                         alt="School"
                         width={28}
                         height={28}
