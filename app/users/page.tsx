@@ -731,7 +731,7 @@ export default function UsersPage() {
                   </MenuItem>
                   {schools.map((school) => (
                     <MenuItem key={school.id} value={String(school.id)}>
-                      {school.schoolName}
+                      {school.schoolName || school.name}
                     </MenuItem>
                   ))}
                 </TextField>

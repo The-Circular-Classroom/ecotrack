@@ -254,7 +254,7 @@ export default function CreateUserModal({ onClose, loggedInSchoolId = null }: Cr
                 <option value="" disabled>Select School</option>
                 {schools.map((school) => (
                   <option key={school.id} value={school.id}>
-                    {school.schoolName}
+                    {school.schoolName || school.name}
                   </option>
                 ))}
               </select>
