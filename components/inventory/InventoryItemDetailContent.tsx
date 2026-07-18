@@ -101,7 +101,7 @@ export default function SchoolCategoryColorContent() {
   const fetchDonationDrives = useCallback(async (schoolId) => {
     if (!schoolId) return;
     try {
-      const res = await fetch(`/api/donations/drives/school/${schoolId}`);
+      const res = await fetch(`/api/donation-drive/school/${schoolId}`);
       if (!res.ok) throw new Error("Failed to fetch donation drives");
       const result = await res.json();
       setDonationDrives(result.data || result || []);

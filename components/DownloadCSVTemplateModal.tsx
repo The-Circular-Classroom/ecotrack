@@ -211,7 +211,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
     setLoadingDrives(true);
     try {
       const res = await fetch(
-        `${apiUrl}/api/donations/drives/school/${schoolId}`
+        `${apiUrl}/api/donation-drive/school/${schoolId}`
       );
       const json = await res.json();
       if (!res.ok)
