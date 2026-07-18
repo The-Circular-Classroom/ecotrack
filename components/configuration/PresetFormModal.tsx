@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { CircularProgress } from "@mui/material";
 
 // icon
 import { IoClose } from "react-icons/io5";
@@ -281,8 +282,11 @@ export default function PresetForm({ onClose, editData }) {
   // ── handlers ────────────────────────────────────────────────────────────
   const set = (patch) => setFormData((prev) => ({ ...prev, ...patch }));
 
-  // ── fetch all data in parallel ──────────────────────────────────────────
+  // ── fetch all data & preset details in parallel ──────────────────────────────────────────
   useEffect(() => {
+    let isMounted = true;
+    setLoadingData(true);
+
     const endpoints = [
       "inventory/categories",
       "inventory/brands",
@@ -302,52 +306,66 @@ export default function PresetForm({ onClose, editData }) {
       "tags",
     ];
 
-    Promise.allSettled(endpoints.map(apiFetch)).then((results) => {
-      const updates = {};
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          let val = result.value || [];
-          if (keys[i] === "schools") {
-            val = val.map((s) => ({
-              ...s,
-              schoolName: s.schoolName || s.name || "Unknown School",
-            }));
+    const fetchLookups = Promise.allSettled(endpoints.map(apiFetch));
+    const fetchEdit = isEditing && editData?.item_type_id
+      ? apiFetch(`inventory/item-types/${editData.item_type_id}`)
+      : Promise.resolve(null);
+
+    Promise.all([fetchLookups, fetchEdit])
+      .then(([results, editRes]) => {
+        if (!isMounted) return;
+
+        const updates = {};
+        results.forEach((result, i) => {
+          if (result.status === "fulfilled") {
+            let val = result.value || [];
+            if (keys[i] === "schools") {
+              val = val.map((s) => ({
+                ...s,
+                schoolName: s.schoolName || s.name || "Unknown School",
+              }));
+            }
+            updates[keys[i]] = val;
+          } else {
+            console.error(`Failed to fetch ${endpoints[i]}:`, result.reason);
           }
-          updates[keys[i]] = val;
-        } else {
-          console.error(`Failed to fetch ${endpoints[i]}:`, result.reason);
-        }
-      });
-      setData((prev) => ({ ...prev, ...updates }));
-      setLoadingData(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isEditing || loadingData) return;
-
-    apiFetch(`inventory/item-types/${editData.item_type_id}`)
-      .then((d) => {
-        const secondaryColor = d.secondaryColourId ?? null;
-        lastSecondaryColor.current = secondaryColor;
-        set({
-          schoolId: String(d.schoolId ?? d.school?.id ?? ""),
-          schoolName: d.schoolName || d.school?.schoolName || "",
-          categoryId: String(d.categoryId ?? d.category?.id ?? ""),
-          brandId: String(d.brandSupplierId ?? d.brandSupplier?.id ?? ""),
-          sizeType: d.sizeType ?? d.sizeCategory?.sizeType ?? "",
-          materialId: d.materialId ? String(d.materialId) : "",
-          gender: d.gender || "Male",
-          primaryColor: d.primaryColourId ?? null,
-          hasSecondaryColor: !!d.secondaryColourId,
-          secondaryColor,
-          patternId: d.patternId ? String(d.patternId) : "",
-          tags: Array.isArray(d.tags) ? d.tags.map((t) => (typeof t === "object" ? t.id : t)) : [],
-          imagePreview: d.imageUrl ?? null,
         });
+        setData((prev) => ({ ...prev, ...updates }));
+
+        if (editRes) {
+          const d = editRes;
+          const secondaryColor = d.secondaryColourId ?? null;
+          lastSecondaryColor.current = secondaryColor;
+          setFormData({
+            schoolId: String(d.schoolId ?? d.school?.id ?? ""),
+            schoolName: d.schoolName || d.school?.schoolName || "",
+            categoryId: String(d.categoryId ?? d.category?.id ?? ""),
+            brandId: String(d.brandSupplierId ?? d.brandSupplier?.id ?? ""),
+            sizeType: d.sizeType ?? d.sizeCategory?.sizeType ?? "",
+            materialId: d.materialId ? String(d.materialId) : "",
+            gender: d.gender || "Male",
+            primaryColor: d.primaryColourId ?? null,
+            hasSecondaryColor: !!d.secondaryColourId,
+            secondaryColor,
+            patternId: d.patternId ? String(d.patternId) : "",
+            tags: Array.isArray(d.tags) ? d.tags.map((t) => (typeof t === "object" ? t.id : t)) : [],
+            image: null,
+            imagePreview: d.imageUrl ?? null,
+            removeImage: false,
+          });
+        }
+
+        setLoadingData(false);
       })
-      .catch(console.error);
-  }, [isEditing, loadingData]);
+      .catch((err) => {
+        console.error("Error loading preset modal data:", err);
+        if (isMounted) setLoadingData(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isEditing, editData]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -479,6 +497,17 @@ export default function PresetForm({ onClose, editData }) {
     formData.gender &&
     formData.primaryColor &&
     formData.schoolId;
+
+  if (loadingData) {
+    return (
+      <div className="flex flex-col items-center justify-center p-16 min-h-[360px]">
+        <CircularProgress size={36} sx={{ color: "var(--color-main)", mb: 2 }} />
+        <p className="text-sm font-medium text-gray-600">
+          Loading preset details...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit}>
