@@ -76,8 +76,6 @@ export default function Home() {
             '_blank',
             'noopener,noreferrer'
           )
-        } else {
-          window.open('https://www.hansen-lim.dev/admin', '_blank', 'noopener,noreferrer')
         }
       },
       requiredRoles: ['TCC_ADMIN'],
@@ -162,7 +160,7 @@ export default function Home() {
                       <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.5 }}>
                         {card.description}
                       </Typography>
-                      {card.href && !hasAccess && (
+                      {!hasAccess && (
                         <Typography variant="caption" sx={{ color: '#b00020', display: 'block', mt: 1 }}>
                           You do not have access to this module.
                         </Typography>
