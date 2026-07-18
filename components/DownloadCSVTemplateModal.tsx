@@ -91,7 +91,7 @@ export default function DownloadCSVTemplateModal({ isOpen, onClose, isAdmin }) {
     try {
       const [analyticsRes, inventoryRes] = await Promise.all([
         fetch(`/api/schools`),
-        fetch(`${apiUrl}/api/inventory/balances`),
+        fetch(`${apiUrl}/api/inventory/balance`),
       ]);
 
       const [analyticsJson, inventoryJson] = await Promise.all([

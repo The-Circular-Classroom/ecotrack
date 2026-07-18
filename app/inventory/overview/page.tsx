@@ -95,7 +95,7 @@ export default function InventoryOverviewPage() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${inventoryApiUrl}/api/inventory/balances`);
+      const response = await fetch(`${inventoryApiUrl}/api/inventory/balance`);
       if (!response.ok) throw new Error("Failed to fetch inventory data");
 
       const result = await response.json();
