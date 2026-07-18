@@ -69,7 +69,6 @@ export default function NavigationTabs() {
   const role = useSyncExternalStore(subscribeRole, getRoleSnapshot, getRoleServerSnapshot)
 
   const currentValue = useMemo(() => {
-    if (pathname === '/inventory-admin') return '/inventory'
     const matched = TABS.find((t) => {
       const base = t.match || t.value
       return pathname === t.value || pathname === base || pathname.startsWith(base + '/')
