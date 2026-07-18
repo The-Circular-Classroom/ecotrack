@@ -18,9 +18,11 @@ import SnackbarAlert from '@/components/SnackbarAlert'
 
 export default function ChangePasswordPage() {
   const [formData, setFormData] = useState({
+    currentPassword: '',
     password: '',
     confirmPassword: '',
   })
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,8 +38,8 @@ export default function ChangePasswordPage() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.password || !formData.confirmPassword) {
-      setMessage('Password and confirmation are required')
+    if (!formData.currentPassword || !formData.password || !formData.confirmPassword) {
+      setMessage('Current password, new password, and confirmation are required')
       setSeverity('warning')
       setOpen(true)
       return
@@ -59,6 +61,7 @@ export default function ChangePasswordPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          currentPassword: formData.currentPassword,
           password: formData.password,
           confirmPassword: formData.confirmPassword,
         }),
@@ -150,6 +153,38 @@ export default function ChangePasswordPage() {
 
               <Box component="form" onSubmit={handleChangePassword}>
                 <Stack spacing={2.25}>
+                  <TextField
+                    id="currentPassword"
+                    fullWidth
+                    label="Current Password"
+                    variant="outlined"
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockRounded fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle current password visibility"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            edge="end"
+                          >
+                            {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': { borderRadius: 2.5, bgcolor: 'white' },
+                    }}
+                  />
+
                   <TextField
                     id="password"
                     fullWidth

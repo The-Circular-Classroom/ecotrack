@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
   const logger = createApiLogger('POST /api/auth/set-new-password');
   try {
     const body = await request.json()
-    const { session, username, password, confirmPassword } = body
-    logger.info('Request received', { username: username || '(session-based)', hasSession: !!session });
+    const { session, username, password, confirmPassword, currentPassword } = body
+    logger.info('Request received', { username: username || '(session-based)', hasSession: !!session, hasCurrentPassword: !!currentPassword });
 
     // Validate password and confirmPassword are present
     if (!password || !confirmPassword) {
@@ -157,9 +157,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    logger.debug('User found from session, updating password', { userId: user.id });
+    if (currentPassword) {
+      logger.debug('Verifying current password before updating');
+      if (!user.email) {
+        logger.warn('User email missing from session user object', { userId: user.id });
+        return NextResponse.json(
+          { error: 'unauthorized', message: 'Unable to verify current password' },
+          { status: 401 }
+        )
+      }
 
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      })
+
+      if (verifyError) {
+        logger.warn('Current password verification failed', { userId: user.id, error: verifyError.message });
+        return NextResponse.json(
+          { error: 'invalid_password', message: 'Current password is incorrect' },
+          { status: 401 }
+        )
+      }
+    }
+
+    logger.debug('User found from session, updating password via admin API', { userId: user.id });
+
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      password,
+      app_metadata: { force_password_change: false },
+    })
 
     if (updateError) {
       logger.error('Password update failed', { error: updateError.message, userId: user.id });
