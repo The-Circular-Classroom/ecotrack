@@ -63,6 +63,28 @@ const COLOUR_TO_STORAGE: Record<string, string | null> = {
   'Yellow':      'yellow',
 }
 
+const CATEGORY_COLOUR_FALLBACKS: Record<string, Record<string, string>> = {
+  'PE Shorts': {
+    'Blue': 'medium_blue',
+    'Red': 'dark_red',
+    'Grey': 'medium_grey',
+  },
+  'PE Shirt': {
+    'Yellow': 'dark_yellow',
+  },
+  'Polo Shirt': {
+    'Red': 'medium_red',
+    'Yellow': 'light_yellow',
+  },
+  'Uniform Pants': {
+    'Red': 'dark_red',
+    'Grey': 'dark_grey',
+  },
+  'Uniform Shorts': {
+    'Brown': 'dark_brown',
+  },
+}
+
 /**
  * Builds the public Supabase Storage URL for a uniform graphic.
  *
@@ -81,7 +103,9 @@ export function getUniformImageUrl(
   const categoryEntry = CATEGORY_TO_STORAGE[categoryName]
   if (!categoryEntry) return null
 
-  const colourSlug = COLOUR_TO_STORAGE[colourName]
+  const colourSlug =
+    CATEGORY_COLOUR_FALLBACKS[categoryName]?.[colourName] ||
+    COLOUR_TO_STORAGE[colourName]
   if (!colourSlug) return null
 
   const storagePath = `uniform-graphics/general/${categoryEntry.folder}/${categoryEntry.prefix}_-_${colourSlug}.png`

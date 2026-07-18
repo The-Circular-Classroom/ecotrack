@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useState } from 'react';
 import Image from 'next/image';
 
 /**
@@ -35,6 +36,7 @@ function Placeholder() {
 export default function UniformOverviewCard({ itemType, onClick }) {
   const isMulti = itemType?.isMulti ?? false;
   const subCategories = itemType?.subCategories ?? [];
+  const [imageError, setImageError] = useState(false);
 
   // ── Single-category helpers ───────────────────────────────────────────────
   const singleLabel = itemType?.displayLabel || itemType?.category?.categoryName || 'Unknown';
@@ -53,13 +55,14 @@ export default function UniformOverviewCard({ itemType, onClick }) {
       >
         {/* Single image (first available or placeholder) */}
         <div className="relative w-full aspect-square bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-          {multiImageUrl ? (
+          {multiImageUrl && !imageError ? (
             <Image
               src={multiImageUrl}
               alt={itemType?.displayLabel || ''}
               fill
               unoptimized
               className="object-contain p-6 bg-white"
+              onError={() => setImageError(true)}
             />
           ) : (
             <Placeholder />
@@ -89,13 +92,14 @@ export default function UniformOverviewCard({ itemType, onClick }) {
     >
       {/* Item Image */}
       <div className="relative w-full aspect-square bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        {singleImageUrl ? (
+        {singleImageUrl && !imageError ? (
           <Image
             src={singleImageUrl}
             alt={singleLabel}
             fill
             unoptimized
             className="object-contain p-6 bg-white"
+            onError={() => setImageError(true)}
           />
         ) : (
           <Placeholder />
