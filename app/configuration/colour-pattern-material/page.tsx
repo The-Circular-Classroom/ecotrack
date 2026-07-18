@@ -415,9 +415,9 @@ export default function ColourPatternMaterialPage() {
         pRes.json(),
         mRes.json(),
       ]);
-      setColours(cData.data || []);
-      setPatterns(pData.data || []);
-      setMaterials(mData.data || []);
+      setColours(cData.colours || cData.data || []);
+      setPatterns(pData.patterns || pData.data || []);
+      setMaterials(mData.materials || mData.data || []);
       setError(null);
     } catch (err) {
       console.error(err);

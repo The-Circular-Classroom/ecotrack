@@ -198,8 +198,9 @@ export default function BrandPage() {
       const res = await fetch(`${API_URL}/api/inventory/brands`);
       if (!res.ok) throw new Error("Failed to fetch brands");
       const result = await res.json();
-      const sorted = (result.data || []).sort((a, b) =>
-        a.brandSupplier.localeCompare(b.brandSupplier),
+      const rawBrands = result.brands || result.data || [];
+      const sorted = rawBrands.sort((a, b) =>
+        (a.brandSupplier || "").localeCompare(b.brandSupplier || ""),
       );
       setBrands(sorted);
       setError(null);

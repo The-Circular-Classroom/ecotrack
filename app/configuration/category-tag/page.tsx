@@ -411,8 +411,8 @@ export default function CategoryTagPage() {
         catRes.json(),
         tagRes.json(),
       ]);
-      setCategories(catData.data || []);
-      setTags(tagData.data || []);
+      setCategories(catData.categories || catData.data || []);
+      setTags(tagData.tags || tagData.data || []);
       setError(null);
     } catch (err) {
       console.error(err);
