@@ -136,10 +136,10 @@ export default function ChangePasswordPage() {
                 </Box>
                 <div>
                   <Typography variant="h5" component="h1" fontWeight={700} color="text.primary">
-                    Create Permanent Password
+                    Change Password
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    You are logged in with a temporary password. You must set a new permanent password to continue.
+                    You are logged in with a temporary password. You must set a new password to continue.
                   </Typography>
                 </div>
               </Stack>
@@ -153,7 +153,7 @@ export default function ChangePasswordPage() {
                   <TextField
                     id="password"
                     fullWidth
-                    label="New Permanent Password"
+                    label="New Password"
                     variant="outlined"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••••••"
@@ -185,7 +185,7 @@ export default function ChangePasswordPage() {
                   <TextField
                     id="confirmPassword"
                     fullWidth
-                    label="Confirm Permanent Password"
+                    label="Confirm New Password"
                     variant="outlined"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="••••••••••••"

@@ -80,8 +80,13 @@ function LoginForm() {
         const mustChangePassword = forcePasswordChange || profile?.mustChangePassword === true
 
         if (profile || forcePasswordChange) {
-          setMessage('Login successful')
-          setSeverity('success')
+          if (mustChangePassword) {
+            setMessage('Please change your password to continue')
+            setSeverity('warning')
+          } else {
+            setMessage('Login successful')
+            setSeverity('success')
+          }
           setOpen(true)
 
           // Notify other components about auth change
