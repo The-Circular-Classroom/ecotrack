@@ -226,8 +226,34 @@ export async function POST(request: NextRequest) {
       logger.error('Failed to clear DB must_change_password flag', { error: dbErr?.message })
     }
 
+    // Re-authenticate user with new password to issue fresh session tokens/cookies
+    let accessToken: string | undefined
+    let refreshToken: string | undefined
+    let expiresIn: number | undefined
+
+    if (user.email) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: password,
+      })
+
+      if (signInError) {
+        logger.error('Failed to re-authenticate user after password update', { error: signInError.message, userId: user.id })
+      } else if (signInData?.session) {
+        logger.info('User re-authenticated with new password successfully', { userId: user.id })
+        accessToken = signInData.session.access_token
+        refreshToken = signInData.session.refresh_token
+        expiresIn = signInData.session.expires_in
+      }
+    }
+
     logger.info('Response sent', { status: 200 });
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      ...(accessToken && refreshToken
+        ? { access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn }
+        : {}),
+    })
   } catch (err) {
     logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(

@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import { Visibility, VisibilityOff, ArrowForward, LockRounded, ShieldRounded } from '@mui/icons-material'
 import SnackbarAlert from '@/components/SnackbarAlert'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function ChangePasswordPage() {
   const [formData, setFormData] = useState({
@@ -70,6 +71,14 @@ export default function ChangePasswordPage() {
       const data = await response.json()
 
       if (response.ok && data.success) {
+        if (data.access_token && data.refresh_token) {
+          const supabase = createSupabaseBrowserClient()
+          await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          })
+        }
+
         setMessage('Password updated successfully! Redirecting...')
         setSeverity('success')
         setOpen(true)
@@ -146,11 +155,9 @@ export default function ChangePasswordPage() {
                   </Typography>
                 </div>
               </Stack>
-
               <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-                Password must be at least 8 characters long.
+                Password must contain lowercase, uppercase letters, digits and special symbols
               </Alert>
-
               <Box component="form" onSubmit={handleChangePassword}>
                 <Stack spacing={2.25}>
                   <TextField
