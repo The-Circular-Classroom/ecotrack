@@ -180,7 +180,7 @@ export default function SchoolItemTypesContent() {
           colorOptions: Array.from(g.colors.values()),
           colorCount: g.colors.size,
           imageUrl: g.items[0]?.itemType?.imageUrl || null,
-          schoolLogoUrl: school?.logoUrl || null,
+          schoolLogoUrl: school?.logoUrl || (school?.id ? `/api/school/${school.id}/logo` : null),
         }))
         .sort((a, b) => {
           const primary =

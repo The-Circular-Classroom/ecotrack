@@ -63,13 +63,14 @@ export default function InventoryPage() {
       const school = balances?.[0]?.itemType?.school || null
 
       if (school?.id) {
+        const logoUrl = school.logoUrl || `/api/school/${school.id}/logo`
         sessionStorage.setItem('_invSelectedSchool', JSON.stringify({
           id: school.id,
           schoolName: school.schoolName,
-          logoUrl: school.logoUrl,
+          logoUrl,
         }))
         window.dispatchEvent(new CustomEvent('school-changed', {
-          detail: { logoUrl: school.logoUrl, schoolName: school.schoolName },
+          detail: { logoUrl, schoolName: school.schoolName },
         }))
       }
       router.replace('/inventory/items/school')

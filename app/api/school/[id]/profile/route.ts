@@ -100,7 +100,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         natureCode: school.natureCode,
         zoneCode: school.zoneCode,
         status: school.status,
-        logoUrl: school.logoUrl,
+        logoUrl: school.logoUrl || `/api/school/${school.id}/logo`,
         isCooperating: school.isCooperating,
         contacts: {
           schoolStaff,

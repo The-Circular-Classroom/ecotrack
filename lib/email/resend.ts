@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy_key_for_build')
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@ecotrack.app'
 
 /**

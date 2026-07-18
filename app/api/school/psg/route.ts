@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       postalCode: user.school.postalCode,
       zoneCode: user.school.zoneCode,
       status: user.school.status,
-      logoUrl: user.school.logoUrl,
+      logoUrl: user.school.logoUrl || `/api/school/${user.school.id}/logo`,
       isCooperating: user.school.isCooperating,
     }
 
