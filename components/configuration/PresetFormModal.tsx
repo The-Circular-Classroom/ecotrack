@@ -16,7 +16,17 @@ const API_URL = '';
 const apiFetch = (path) =>
   fetch(`${API_URL}/api/${path}`).then((res) => {
     if (!res.ok) throw new Error(`Failed to fetch ${path}`);
-    return res.json().then((d) => d.data);
+    return res.json().then((d) => {
+      if (d.data !== undefined) return d.data;
+      if (d.categories !== undefined) return d.categories;
+      if (d.brands !== undefined) return d.brands;
+      if (d.materials !== undefined) return d.materials;
+      if (d.patterns !== undefined) return d.patterns;
+      if (d.colours !== undefined) return d.colours;
+      if (d.tags !== undefined) return d.tags;
+      if (d.itemType !== undefined) return d.itemType;
+      return d;
+    });
   });
 
 // ─── ColorDropdown ───────────────────────────────────────────────────────────
@@ -110,7 +120,7 @@ function TagsDropdown({ tags, value, onChange }) {
   }, []);
 
   const filtered = tags.filter((t) =>
-    t.tagName.toLowerCase().includes(search.toLowerCase()),
+    (t.tagName || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   const toggle = (id) => {
@@ -274,13 +284,13 @@ export default function PresetForm({ onClose, editData }) {
   // ── fetch all data in parallel ──────────────────────────────────────────
   useEffect(() => {
     const endpoints = [
-      "category",
-      "brand",
-      "material",
-      "pattern",
-      "colour",
-      "school",
-      "tag",
+      "inventory/categories",
+      "inventory/brands",
+      "inventory/materials",
+      "inventory/patterns",
+      "inventory/colours",
+      "schools",
+      "inventory/tags",
     ];
     const keys = [
       "itemCategories",
@@ -296,7 +306,14 @@ export default function PresetForm({ onClose, editData }) {
       const updates = {};
       results.forEach((result, i) => {
         if (result.status === "fulfilled") {
-          updates[keys[i]] = result.value;
+          let val = result.value || [];
+          if (keys[i] === "schools") {
+            val = val.map((s) => ({
+              ...s,
+              schoolName: s.schoolName || s.name || "Unknown School",
+            }));
+          }
+          updates[keys[i]] = val;
         } else {
           console.error(`Failed to fetch ${endpoints[i]}:`, result.reason);
         }
@@ -309,23 +326,23 @@ export default function PresetForm({ onClose, editData }) {
   useEffect(() => {
     if (!isEditing || loadingData) return;
 
-    apiFetch(`item-type/preset/${editData.item_type_id}`)
+    apiFetch(`inventory/item-types/${editData.item_type_id}`)
       .then((d) => {
         const secondaryColor = d.secondaryColourId ?? null;
         lastSecondaryColor.current = secondaryColor;
         set({
-          schoolId: String(d.schoolId),
-          schoolName: d.schoolName,
-          categoryId: String(d.categoryId),
-          brandId: String(d.brandSupplierId),
-          sizeType: d.sizeType ?? "",
+          schoolId: String(d.schoolId ?? d.school?.id ?? ""),
+          schoolName: d.schoolName || d.school?.schoolName || "",
+          categoryId: String(d.categoryId ?? d.category?.id ?? ""),
+          brandId: String(d.brandSupplierId ?? d.brandSupplier?.id ?? ""),
+          sizeType: d.sizeType ?? d.sizeCategory?.sizeType ?? "",
           materialId: d.materialId ? String(d.materialId) : "",
-          gender: d.gender,
+          gender: d.gender || "Male",
           primaryColor: d.primaryColourId ?? null,
           hasSecondaryColor: !!d.secondaryColourId,
           secondaryColor,
           patternId: d.patternId ? String(d.patternId) : "",
-          tags: d.tags,
+          tags: Array.isArray(d.tags) ? d.tags.map((t) => (typeof t === "object" ? t.id : t)) : [],
           imagePreview: d.imageUrl ?? null,
         });
       })

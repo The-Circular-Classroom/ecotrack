@@ -67,18 +67,16 @@ export default function CategoryTagFormModal({
     const base = getApiUrl();
     const headers = { ...getAuthHeader(), "Content-Type": "application/json" };
 
-    const endpoint = type === "Category" ? "category" : "tag";
+    const endpoint = type === "Category" ? "inventory/categories" : "inventory/tags";
 
     const payloads = rows.map((r) =>
       type === "Category"
         ? {
-            category_name: r.name.trim(),
-            weight_kg: parseFloat(r.weightKg) || 0,
+            categoryName: r.name.trim(),
+            weightKg: parseFloat(r.weightKg) || 0,
           }
         : {
-            user_id: loggedInUserId || "9", // to be replaced with actual logged in user ID
-            tag_name: r.name.trim(),
-            is_active: r.isActive,
+            tagName: r.name.trim(),
           },
     );
 

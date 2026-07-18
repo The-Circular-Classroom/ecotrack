@@ -65,17 +65,17 @@ export default function CPMFormModal({ open, onClose, onSuccess }) {
 
     const endpoint =
       type === "Colour"
-        ? "colour"
+        ? "inventory/colours"
         : type === "Pattern"
-          ? "pattern"
-          : "material";
+          ? "inventory/patterns"
+          : "inventory/materials";
 
     const payloads = rows.map((r) =>
       type === "Colour"
-        ? { colour_name: r.name.trim(), hexcode: r.hexcode.trim() }
+        ? { colourName: r.name.trim(), hexcode: r.hexcode.trim() }
         : type === "Pattern"
-          ? { pattern_name: r.name.trim() }
-          : { material_name: r.name.trim() },
+          ? { patternName: r.name.trim() }
+          : { materialName: r.name.trim() },
     );
 
     const results = await Promise.allSettled(
