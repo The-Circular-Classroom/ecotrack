@@ -48,14 +48,25 @@ export async function POST(request: NextRequest) {
 
     logger.info('Authentication succeeded', { userId: data.user.id, email });
 
-    // Get role from the users table via Prisma (canonical source)
+    // Update lastLogin and resolve role from the users table via Prisma (canonical source)
     let role = 'Parent'
-    const dbUser = await prisma.user.findUnique({
-      where: { supabaseAuthId: data.user.id },
-      select: { role: true },
-    })
-    if (dbUser?.role) {
-      role = dbUser.role
+    try {
+      const dbUser = await prisma.user.update({
+        where: { supabaseAuthId: data.user.id },
+        data: { lastLogin: new Date() },
+        select: { role: true },
+      })
+      if (dbUser?.role) {
+        role = dbUser.role
+      }
+    } catch {
+      const dbUser = await prisma.user.findUnique({
+        where: { supabaseAuthId: data.user.id },
+        select: { role: true },
+      })
+      if (dbUser?.role) {
+        role = dbUser.role
+      }
     }
     logger.debug('Role resolved from users table', { role });
 

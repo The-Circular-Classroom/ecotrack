@@ -60,52 +60,60 @@ function LoginForm() {
     }
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: username,
-        password: password
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: username, password }),
       })
 
-      if (error) {
-        setMessage(error.message || 'Invalid email or password')
+      const loginResData = await response.json()
+
+      if (!response.ok) {
+        setMessage(loginResData.message || 'Invalid email or password')
         setSeverity('error')
         setOpen(true)
         return
       }
 
-      if (data.session) {
-        const forcePasswordChange = data.user?.app_metadata?.force_password_change === true
-        // Resolve profile and roles using users/me API
-        const profile = await fetchUserProfile()
-        const mustChangePassword = forcePasswordChange || profile?.mustChangePassword === true
+      const supabase = createSupabaseBrowserClient()
+      if (loginResData.access_token && loginResData.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: loginResData.access_token,
+          refresh_token: loginResData.refresh_token,
+        })
+      }
 
-        if (profile || forcePasswordChange) {
-          if (mustChangePassword) {
-            setMessage('Please change your password to continue')
-            setSeverity('warning')
-          } else {
-            setMessage('Login successful')
-            setSeverity('success')
-          }
-          setOpen(true)
+      const forcePasswordChange = loginResData.user?.mustChangePassword === true
+      // Resolve profile and roles using users/me API
+      const profile = await fetchUserProfile()
+      const mustChangePassword = forcePasswordChange || profile?.mustChangePassword === true
 
-          // Notify other components about auth change
-          window.dispatchEvent(new Event('auth-changed'))
-
-          setTimeout(() => {
-            if (mustChangePassword) {
-              router.replace('/auth/change-password')
-            } else if (continuePath) {
-              router.replace(continuePath)
-            } else {
-              router.replace('/')
-            }
-          }, 800)
+      if (profile || forcePasswordChange) {
+        if (mustChangePassword) {
+          setMessage('Please change your password to continue')
+          setSeverity('warning')
         } else {
-          setMessage('Failed to load user profile')
-          setSeverity('error')
-          setOpen(true)
+          setMessage('Login successful')
+          setSeverity('success')
         }
+        setOpen(true)
+
+        // Notify other components about auth change
+        window.dispatchEvent(new Event('auth-changed'))
+
+        setTimeout(() => {
+          if (mustChangePassword) {
+            router.replace('/auth/change-password')
+          } else if (continuePath) {
+            router.replace(continuePath)
+          } else {
+            router.replace('/')
+          }
+        }, 800)
+      } else {
+        setMessage('Failed to load user profile')
+        setSeverity('error')
+        setOpen(true)
       }
     } catch (error: any) {
       setMessage(error?.message || 'Something went wrong, please try again')

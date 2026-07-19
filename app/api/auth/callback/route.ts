@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
         update: {
           // Sync email in case it changed (e.g., email_change confirmation)
           email: user.email!.toLowerCase(),
+          lastLogin: new Date(),
         },
         create: {
           supabaseAuthId: user.id,
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
           fullName: user.user_metadata?.full_name || null,
           phoneNumber: user.user_metadata?.phone_number || null,
           role: 'Parent',
+          lastLogin: new Date(),
         },
       })
       logger.info('Prisma user record upserted', { userId: user.id });

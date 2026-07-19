@@ -149,6 +149,14 @@ const buildColumns = (): any[] => [
     valueGetter: (value: any) => (value ? new Date(value) : null),
     renderCell: ({ row }: any) => formatDateTime(row.createdDate),
   },
+  {
+    field: 'lastLogin',
+    headerName: 'Last Login',
+    width: 200,
+    type: 'dateTime',
+    valueGetter: (value: any) => (value ? new Date(value) : null),
+    renderCell: ({ row }: any) => formatDateTime(row.lastLogin),
+  },
 ]
 
 function NoRowsOverlay() {
