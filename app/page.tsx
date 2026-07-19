@@ -72,7 +72,7 @@ export default function Home() {
           let accessToken = session.access_token
           let refreshToken = session.refresh_token
           window.open(
-            `https://www.hansen-lim.dev/admin/auth/callback?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`,
+            `https://hansen-lim.dev/admin/auth/callback?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`,
             '_blank',
             'noopener,noreferrer'
           )
