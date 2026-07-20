@@ -277,9 +277,8 @@ export default function UniformOverviewPage() {
   }, [])
 
   useEffect(() => {
-    if (role === 'UNKNOWN') return
     fetchBalances()
-  }, [role, fetchBalances])
+  }, [fetchBalances])
 
   const schools = useMemo(() => {
     const map = new Map<number, any>()
@@ -295,7 +294,10 @@ export default function UniformOverviewPage() {
   }, [rows])
 
   useEffect(() => {
-    if (schools.length === 1 && !selectedSchoolId) {
+    if (
+      schools.length > 0 &&
+      (!selectedSchoolId || !schools.some((s) => String(s.id) === String(selectedSchoolId)))
+    ) {
       setSelectedSchoolId(String(schools[0].id))
     }
   }, [schools, selectedSchoolId])
@@ -498,17 +500,13 @@ export default function UniformOverviewPage() {
         </div>
       )}
 
-      {viewLevel === 'cards' && showSchoolSelector && !selectedSchoolId && (
-        <Typography variant="body2" color="text.secondary">
-          Select a school to view its uniforms.
-        </Typography>
-      )}
-
       {viewLevel === 'cards' && (
         <>
-          {selectedSchoolId && filteredCards.length === 0 && (
+          {filteredCards.length === 0 && (
             <Typography variant="body2" color="text.secondary">
-              No uniforms found.
+              {showSchoolSelector && !selectedSchoolId
+                ? 'Select a school to view its uniforms.'
+                : 'No uniforms found.'}
             </Typography>
           )}
 
