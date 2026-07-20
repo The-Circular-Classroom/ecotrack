@@ -162,7 +162,7 @@ export default function Header() {
                 )}
               </div>
 
-              {mounted && !hideHeaderUI && role !== 'UNKNOWN' && (
+              {mounted && !hideHeaderUI && (role === 'TCC_ADMIN' || role === 'SCHOOL_STAFF') && (
                 <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-0.5">
                   {APPS.map((app) => {
                     const isActive = app.key === currentApp.key

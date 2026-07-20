@@ -42,10 +42,10 @@ export default function Home() {
     },
     {
       title: 'Analytics Dashboards',
-      description: 'view and analyse business metrics',
+      description: 'view and analyse donation metrics',
       icon: <Inventory2OutlinedIcon sx={{ fontSize: 32, mb: 2, color: '#1a1a1a' }} />,
       href: '/analytics/overview',
-      requiredRoles: ['TCC_ADMIN', 'SCHOOL_STAFF', 'PSG'],
+      requiredRoles: ['TCC_ADMIN', 'SCHOOL_STAFF'],
     },
     {
       title: 'Carbon Tracker',
