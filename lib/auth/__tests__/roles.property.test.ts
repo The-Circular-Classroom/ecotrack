@@ -57,6 +57,8 @@ const EXPECTED_ACCESS: Record<UserRole, Set<EndpointCategory>> = {
     'userManagement',
     'inventory',
     'csv',
+    'csvUpload',
+    'csvApprove',
     'collection',
     'donationDrives',
     'ownProfile',
@@ -68,6 +70,7 @@ const EXPECTED_ACCESS: Record<UserRole, Set<EndpointCategory>> = {
   SchoolStaff: new Set([
     'inventory',
     'csv',
+    'csvUpload',
     'collection',
     'donationDrives',
     'ownProfile',
@@ -77,6 +80,8 @@ const EXPECTED_ACCESS: Record<UserRole, Set<EndpointCategory>> = {
     'health',
   ]),
   PsgVolunteer: new Set([
+    'csv',
+    'csvUpload',
     'collection',
     'donationDrives',
     'ownProfile',
@@ -193,10 +198,10 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 5: Role hierarchy 
     expect(hasPermission('SchoolStaff', CATEGORY_PERMISSIONS.userManagement)).toBe(false)
   })
 
-  it('PsgVolunteer should access collection and donation drives but not inventory or CSV', () => {
+  it('PsgVolunteer should access collection, donation drives, and csvUpload but not inventory or csvApprove', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom<EndpointCategory>('collection', 'donationDrives'),
+        fc.constantFrom<EndpointCategory>('collection', 'donationDrives', 'csvUpload'),
         (category: EndpointCategory) => {
           const permission = CATEGORY_PERMISSIONS[category]
           expect(hasPermission('PsgVolunteer', permission)).toBe(true)
@@ -205,9 +210,9 @@ describe('Feature: aws-to-vercel-supabase-migration, Property 5: Role hierarchy 
       { numRuns: 100 }
     )
 
-    // PsgVolunteer should NOT access inventory or CSV
+    // PsgVolunteer should NOT access inventory or csvApprove
     expect(hasPermission('PsgVolunteer', CATEGORY_PERMISSIONS.inventory)).toBe(false)
-    expect(hasPermission('PsgVolunteer', CATEGORY_PERMISSIONS.csv)).toBe(false)
+    expect(hasPermission('PsgVolunteer', CATEGORY_PERMISSIONS.csvApprove)).toBe(false)
   })
 
   it('Parent should access only own profile and donation history', () => {

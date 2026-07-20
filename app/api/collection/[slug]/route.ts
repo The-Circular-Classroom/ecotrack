@@ -182,9 +182,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   // Public check for overall routes
   const isPublicRoute = slug === 'overall-donations' || slug === 'overall-donations-by-category'
-  if (!isPublicRoute && !requireRole(role, 'SchoolStaff')) {
+  if (!isPublicRoute && !requireRole(role, 'PsgVolunteer')) {
     return NextResponse.json(
-      { error: 'forbidden', message: 'SchoolStaff access required' },
+      { error: 'forbidden', message: 'PsgVolunteer access required' },
       { status: 403 }
     )
   }

@@ -150,11 +150,16 @@ describe('lib/auth/roles', () => {
       expect(hasPermission('Parent', CATEGORY_PERMISSIONS.inventory)).toBe(false)
     })
 
-    it('allows SchoolStaff and above for CSV', () => {
-      expect(hasPermission('Admin', CATEGORY_PERMISSIONS.csv)).toBe(true)
-      expect(hasPermission('SchoolStaff', CATEGORY_PERMISSIONS.csv)).toBe(true)
-      expect(hasPermission('PsgVolunteer', CATEGORY_PERMISSIONS.csv)).toBe(false)
-      expect(hasPermission('Parent', CATEGORY_PERMISSIONS.csv)).toBe(false)
+    it('allows PsgVolunteer and above for CSV upload, Admin only for CSV approve', () => {
+      expect(hasPermission('Admin', CATEGORY_PERMISSIONS.csvUpload)).toBe(true)
+      expect(hasPermission('SchoolStaff', CATEGORY_PERMISSIONS.csvUpload)).toBe(true)
+      expect(hasPermission('PsgVolunteer', CATEGORY_PERMISSIONS.csvUpload)).toBe(true)
+      expect(hasPermission('Parent', CATEGORY_PERMISSIONS.csvUpload)).toBe(false)
+
+      expect(hasPermission('Admin', CATEGORY_PERMISSIONS.csvApprove)).toBe(true)
+      expect(hasPermission('SchoolStaff', CATEGORY_PERMISSIONS.csvApprove)).toBe(false)
+      expect(hasPermission('PsgVolunteer', CATEGORY_PERMISSIONS.csvApprove)).toBe(false)
+      expect(hasPermission('Parent', CATEGORY_PERMISSIONS.csvApprove)).toBe(false)
     })
 
     it('allows PsgVolunteer and above for collection', () => {

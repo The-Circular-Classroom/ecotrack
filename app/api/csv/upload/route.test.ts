@@ -17,8 +17,9 @@ vi.mock('@/lib/supabase/server', () => ({
 function createMockRequest(options: {
   file?: File | null
   userId?: string | null
+  userRole?: string | null
 }): NextRequest {
-  const { file, userId } = options
+  const { file, userId, userRole = 'PsgVolunteer' } = options
 
   const formData = new FormData()
   if (file) {
@@ -28,6 +29,9 @@ function createMockRequest(options: {
   const headers = new Headers()
   if (userId) {
     headers.set('x-user-id', userId)
+  }
+  if (userRole) {
+    headers.set('x-user-role', userRole)
   }
 
   return new NextRequest('http://localhost/api/csv/upload', {
@@ -51,6 +55,15 @@ describe('POST /api/csv/upload', () => {
     const body = await response.json()
     expect(body.error).toBe('unauthorized')
     expect(body.message).toBe('User ID required')
+  })
+
+  it('returns 403 when user has Parent role', async () => {
+    const request = createMockRequest({ userId: 'user-123', userRole: 'Parent' })
+    const response = await POST(request)
+
+    expect(response.status).toBe(403)
+    const body = await response.json()
+    expect(body.error).toBe('forbidden')
   })
 
   it('returns 400 when no file is provided', async () => {

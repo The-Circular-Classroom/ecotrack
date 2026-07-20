@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateFile } from '@/lib/storage/validation'
 import { generateUniqueFilename } from '@/lib/storage/filename'
+import { requireRole } from '@/lib/auth/roles'
 
 export async function POST(request: NextRequest) {
   const userId = request.headers.get('x-user-id')
+  const userRole = request.headers.get('x-user-role')
+
   if (!userId) {
     return NextResponse.json(
       { error: 'unauthorized', message: 'User ID required' },
       { status: 401 }
+    )
+  }
+
+  if (!requireRole(userRole, 'PsgVolunteer')) {
+    return NextResponse.json(
+      { error: 'forbidden', message: 'PsgVolunteer or higher access required' },
+      { status: 403 }
     )
   }
 

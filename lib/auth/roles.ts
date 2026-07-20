@@ -31,6 +31,8 @@ export type EndpointCategory =
   | 'userManagement'
   | 'inventory'
   | 'csv'
+  | 'csvUpload'
+  | 'csvApprove'
   | 'collection'
   | 'donationDrives'
   | 'ownProfile'
@@ -42,14 +44,16 @@ export type EndpointCategory =
 /**
  * Mapping of endpoint categories to the minimum role required for access.
  * Admin can access all endpoints (hierarchy level 4 covers everything).
- * SchoolStaff can access inventory and CSV processing.
- * PsgVolunteer can access collection and donation drives.
+ * SchoolStaff can access inventory, analytics, and reports.
+ * PsgVolunteer can access collection, donation drives, and CSV uploads.
  * Parent can access only own profile and donation history.
  */
 export const CATEGORY_PERMISSIONS: Record<EndpointCategory, RoutePermission> = {
   userManagement: { allowedRoles: ['Admin'] },
   inventory: { minRole: 'SchoolStaff' },
-  csv: { minRole: 'SchoolStaff' },
+  csv: { minRole: 'PsgVolunteer' },
+  csvUpload: { minRole: 'PsgVolunteer' },
+  csvApprove: { allowedRoles: ['Admin'] },
   collection: { minRole: 'PsgVolunteer' },
   donationDrives: { minRole: 'PsgVolunteer' },
   ownProfile: { minRole: 'Parent' },

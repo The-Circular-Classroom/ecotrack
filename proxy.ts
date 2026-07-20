@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { requireRole, type UserRole } from '@/lib/auth/roles'
 
 const PUBLIC_PATHS = [
   '/auth/login',
@@ -8,7 +9,7 @@ const PUBLIC_PATHS = [
   '/auth/forget-password',
   '/auth/reset-password',
   '/auth/set-new-password',
-  '/auth/change-password',
+  '/deeplink',
   '/api/health',
   '/api/auth/login',
   '/api/auth/logout',
@@ -19,6 +20,19 @@ const PUBLIC_PATHS = [
   '/api/auth/forgot-password',
   '/api/auth/set-new-password',
 ]
+
+function getDefaultRouteForRole(role: string): string {
+  switch (role) {
+    case 'Admin':
+      return '/analytics/overview'
+    case 'SchoolStaff':
+      return '/analytics/school'
+    case 'PsgVolunteer':
+      return '/donation-drives'
+    default:
+      return '/settings'
+  }
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -140,6 +154,28 @@ export async function proxy(request: NextRequest) {
     role = user.app_metadata?.role || 'Parent'
   }
 
+  // Page-level Role Authorization (RBAC)
+  if (!pathname.startsWith('/api/')) {
+    let minRoleForPage: UserRole | null = null
+
+    if (pathname.startsWith('/users') || pathname.startsWith('/file-approval')) {
+      minRoleForPage = 'Admin'
+    } else if (
+      pathname.startsWith('/configuration') ||
+      pathname.startsWith('/inventory') ||
+      pathname.startsWith('/analytics')
+    ) {
+      minRoleForPage = 'SchoolStaff'
+    } else if (pathname.startsWith('/donation-drives')) {
+      minRoleForPage = 'PsgVolunteer'
+    }
+
+    if (minRoleForPage && !requireRole(role, minRoleForPage)) {
+      const defaultRoute = getDefaultRouteForRole(role)
+      return NextResponse.redirect(new URL(defaultRoute, request.url))
+    }
+  }
+
   // Attach user info to headers for downstream use
   response.headers.set('x-user-id', user.id)
   response.headers.set('x-user-role', role)
@@ -160,3 +196,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
+
