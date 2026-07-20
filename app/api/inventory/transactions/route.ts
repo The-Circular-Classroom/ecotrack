@@ -12,9 +12,9 @@ import { updateInventoryBalance, type StorageLocation } from '@/lib/inventory/ba
  */
 export async function GET(request: NextRequest) {
   const role = request.headers.get('x-user-role')
-  if (!requireRole(role, 'SchoolStaff')) {
+  if (!requireRole(role, 'PsgVolunteer')) {
     return NextResponse.json(
-      { error: 'forbidden', message: 'SchoolStaff access required' },
+      { error: 'forbidden', message: 'PsgVolunteer access required' },
       { status: 403 }
     )
   }
@@ -83,9 +83,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const role = request.headers.get('x-user-role')
-  if (!requireRole(role, 'SchoolStaff')) {
+  if (!requireRole(role, 'PsgVolunteer')) {
     return NextResponse.json(
-      { error: 'forbidden', message: 'SchoolStaff access required' },
+      { error: 'forbidden', message: 'PsgVolunteer access required' },
       { status: 403 }
     )
   }
