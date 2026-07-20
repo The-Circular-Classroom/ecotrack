@@ -166,7 +166,10 @@ export async function proxy(request: NextRequest) {
       pathname.startsWith('/analytics')
     ) {
       minRoleForPage = 'SchoolStaff'
-    } else if (pathname.startsWith('/donation-drives')) {
+    } else if (
+      pathname.startsWith('/donation-drives') ||
+      pathname.startsWith('/update-item-condition')
+    ) {
       minRoleForPage = 'PsgVolunteer'
     }
 
