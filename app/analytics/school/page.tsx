@@ -348,8 +348,9 @@ export default function SchoolAnalyticsPage() {
     fetch(`${authApiUrl}/api/users/me`)
       .then((res) => res.json())
       .then((json) => {
-        if (json?.schoolId) {
-          setSessionSchoolId(String(json.schoolId));
+        const resolvedSchoolId = json?.schoolId ?? json?.school?.id;
+        if (resolvedSchoolId) {
+          setSessionSchoolId(String(resolvedSchoolId));
         } else {
           setProfileError('Your account is not linked to a school. Contact your TCC administrator.');
         }

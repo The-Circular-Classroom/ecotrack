@@ -400,11 +400,14 @@ export default function DonationDrivePage() {
         return res.json();
       })
       .then((json) => {
-        if (json?.userId) setUserId(json.userId);
+        const resolvedUserId = json?.userId ?? json?.id;
+        if (resolvedUserId) setUserId(resolvedUserId);
         if (!admin) {
-          if (json?.schoolId) {
-            setSchoolId(json.schoolId);
-            if (json?.schoolName) setSchoolName(json.schoolName);
+          const resolvedSchoolId = json?.schoolId ?? json?.school?.id;
+          const resolvedSchoolName = json?.schoolName ?? json?.school?.name;
+          if (resolvedSchoolId) {
+            setSchoolId(resolvedSchoolId);
+            if (resolvedSchoolName) setSchoolName(resolvedSchoolName);
           } else {
             setError("Your account is not linked to a school.");
           }

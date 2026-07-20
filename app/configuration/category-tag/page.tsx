@@ -430,7 +430,8 @@ export default function CategoryTagPage() {
     })
       .then((res) => res.json())
       .then((json) => {
-        if (json?.userId) setUserId(json.userId);
+        const resolvedUserId = json?.userId ?? json?.id;
+        if (resolvedUserId) setUserId(resolvedUserId);
       })
       .catch((err) => {
         console.error("Failed to fetch user profile:", err);
