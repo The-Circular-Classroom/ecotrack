@@ -17,7 +17,7 @@ import {
 import { Visibility, VisibilityOff, ArrowForward, LockRounded, EmailRounded } from '@mui/icons-material'
 import SnackbarAlert from '@/components/SnackbarAlert'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { fetchUserProfile } from '@/utils/auth'
+import { fetchUserProfile, setTokensInSession } from '@/utils/auth'
 
 function LoginForm() {
   const [username, setUsername] = useState('')
@@ -33,6 +33,7 @@ function LoginForm() {
       const supabase = createSupabaseBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
+        setTokensInSession(session.access_token, session.refresh_token)
         const forcePasswordChange = session.user?.app_metadata?.force_password_change === true
         if (forcePasswordChange) {
           router.replace('/auth/change-password')
@@ -81,6 +82,7 @@ function LoginForm() {
           access_token: loginResData.access_token,
           refresh_token: loginResData.refresh_token,
         })
+        setTokensInSession(loginResData.access_token, loginResData.refresh_token)
       }
 
       const forcePasswordChange = loginResData.user?.mustChangePassword === true

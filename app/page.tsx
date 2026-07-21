@@ -8,7 +8,7 @@ import AutoFixHighOutlinedIcon from '@mui/icons-material/AutoFixHighOutlined'
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined'
 import WebOutlinedIcon from '@mui/icons-material/WebOutlined'
 import NextLink from 'next/link'
-import { getRoleFromSession } from '@/utils/auth'
+import { getRoleFromSession, setTokensInSession, getTokensFromSession } from '@/utils/auth'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function Home() {
@@ -68,9 +68,12 @@ export default function Home() {
       onClick: async () => {
         let supabase = createSupabaseBrowserClient()
         let { data: { session } } = await supabase.auth.getSession()
+        let accessToken = session?.access_token || getTokensFromSession().access_token
+        let refreshToken = session?.refresh_token || getTokensFromSession().refresh_token
         if (session) {
-          let accessToken = session.access_token
-          let refreshToken = session.refresh_token
+          setTokensInSession(session.access_token, session.refresh_token)
+        }
+        if (accessToken && refreshToken) {
           window.open(
             `https://hansen-lim.dev/admin/auth/callback?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`,
             '_blank',

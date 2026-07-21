@@ -16,6 +16,7 @@ import {
 import { Visibility, VisibilityOff, ArrowForward, LockRounded, ShieldRounded } from '@mui/icons-material'
 import SnackbarAlert from '@/components/SnackbarAlert'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { setTokensInSession } from '@/utils/auth'
 
 export default function ChangePasswordPage() {
   const [formData, setFormData] = useState({
@@ -77,6 +78,7 @@ export default function ChangePasswordPage() {
             access_token: data.access_token,
             refresh_token: data.refresh_token,
           })
+          setTokensInSession(data.access_token, data.refresh_token)
         }
 
         setMessage('Password updated successfully! Redirecting...')

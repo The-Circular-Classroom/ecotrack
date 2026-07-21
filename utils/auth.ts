@@ -57,6 +57,39 @@ export function setRoleInSession(role: string) {
   }
 }
 
+export function setTokensInSession(accessToken?: string | null, refreshToken?: string | null) {
+  try {
+    if (typeof window !== 'undefined') {
+      if (accessToken) {
+        sessionStorage.setItem('access_token', accessToken)
+      } else {
+        sessionStorage.removeItem('access_token')
+      }
+      if (refreshToken) {
+        sessionStorage.setItem('refresh_token', refreshToken)
+      } else {
+        sessionStorage.removeItem('refresh_token')
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getTokensFromSession(): { access_token: string | null; refresh_token: string | null } {
+  try {
+    if (typeof window !== 'undefined') {
+      return {
+        access_token: sessionStorage.getItem('access_token'),
+        refresh_token: sessionStorage.getItem('refresh_token'),
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { access_token: null, refresh_token: null }
+}
+
 export function getRoleFromSession(): string {
   try {
     const stored = sessionStorage.getItem('userRole')
